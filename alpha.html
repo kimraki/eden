@@ -1252,87 +1252,99 @@ body.selecting .card .card-attrib .attrib-time { pointer-events: none; opacity: 
 <body>
 
 <script>
-        // 1. 설정 정보
-        const SHEET_ID = '1ppXzcbJqK7Yk2jgm2a-SmTyTKLsGU0AfLZJhd8ALJoM';
-        const GID_DC = '0';            // 첫 번째 시트 (디씨)
-        const GID_ARCA = '1711740114'; // 두 번째 시트 (아카 - 알려주신 ID)
+    // 1. 설정 정보
+    const SHEET_ID = '1ppXzcbJqK7Yk2jgm2a-SmTyTKLsGU0AfLZJhd8ALJoM';
+    const GID_DC = '0';            // 첫 번째 시트 (디씨)
+    const GID_ARCA = '1711740114'; // 두 번째 시트 (아카 - 주소창의 gid 숫자를 유지하세요)
 
-        // 2. Google Sheets에서 CSV 데이터 가져오기
-        async function fetchSheetData(gid) {
-            const url = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:csv&gid=${gid}`;
-            const response = await fetch(url);
-            const csvText = await response.text();
-            return parseCSV(csvText);
-        }
+    // 2. Google Sheets에서 CSV 데이터 가져오기
+    async function fetchSheetData(gid) {
+        const url = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:csv&gid=${gid}`;
+        const response = await fetch(url);
+        const csvText = await response.text();
+        return parseCSV(csvText);
+    }
 
-        // 3. 간단한 CSV 파서 (따옴표 처리 포함)
-        function parseCSV(csv) {
-            const lines = csv.split('\n');
-            const headers = lines[0].split(',').map(h => h.replace(/"/g, '').trim());
-            
-            return lines.slice(1).map(line => {
-                // 쉼표로 분리하되 따옴표 안의 쉼표는 무시하는 정규식
-                const values = line.match(/(".*?"|[^",\s]+)(?=\s*,|\s*$)/g) || [];
-                const obj = {};
-                headers.forEach((header, i) => {
-                    obj[header] = values[i] ? values[i].replace(/"/g, '').trim() : '';
-                });
-                return obj;
+    // 3. 간단한 CSV 파서
+    function parseCSV(csv) {
+        const lines = csv.split('\n');
+        const headers = lines[0].split(',').map(h => h.replace(/"/g, '').trim());
+        
+        return lines.slice(1).map(line => {
+            const values = line.match(/(".*?"|[^",\s]+)(?=\s*,|\s*$)/g) || [];
+            const obj = {};
+            headers.forEach((header, i) => {
+                obj[header] = values[i] ? values[i].replace(/"/g, '').trim() : '';
             });
-        }
+            return obj;
+        });
+    }
 
-        // 4. 화면에 카드 렌더링
-        function renderCards(arcaData, dcData) {
-            const container = document.getElementById('card-container');
-            container.innerHTML = ''; // 로딩 메시지 제거
+    // 4. 화면에 카드 렌더링 (요청하신 대로 키워드 <-> 제목 위치 변경)
+    function renderCards(arcaData, dcData) {
+        const container = document.getElementById('stream'); 
+        if (!container) return;
 
-            // 두 데이터를 하나로 합침
-            const combinedData = [...arcaData.map(d => ({...d, source: 'ARCA'})), 
-                                  ...dcData.map(d => ({...d, source: 'DC'}))];
+        container.innerHTML = ''; 
+
+        // 데이터 합치기
+        const combinedData = [
+            ...arcaData.map(d => ({...d, source: 'ARCA', class: 'a1'})), 
+            ...dcData.map(d => ({...d, source: 'DC', class: 'a3'}))
+        ];
+        
+        // 작성일 기준 내림차순 정렬
+        combinedData.sort((a, b) => new Date(b['작성일']) - new Date(a['작성일']));
+
+        combinedData.forEach(item => {
+            const card = document.createElement('article');
+            card.className = 'card';
+            card.setAttribute('data-exp', ''); 
             
-            // 날짜순 정렬 (데이터에 '작성일' 컬럼이 있다고 가정)
-            combinedData.sort((a, b) => new Date(b['작성일']) - new Date(a['작성일']));
+            card.innerHTML = `
+                <div class="card-select-check"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><polyline points="20 6 9 17 4 12"/></svg></div>
+                <div class="card-content">
+                    <div style="font-size: 11px; color: var(--brand-hi); font-weight: 700; margin-bottom: 5px;">#${item.source}</div>
+                    <h3 class="card-title">${item['키워드'] || '키워드 없음'}</h3>
+                    <p class="card-body" style="font-weight: 500; color: var(--text);">${item['제목'] || '제목 없음'}</p>
+                </div>
+                <div class="card-attrib">
+                    <div class="profile-avatar ${item.class}">${item.source[0]}</div>
+                    <div class="attrib-meta">
+                        <div class="attrib-name">${item['작성자'] || '익명'}</div>
+                        <div class="attrib-sub"><span class="attrib-src">${item.source}</span></div>
+                    </div>
+                    <div class="attrib-time">${item['작성일'] || ''}</div>
+                </div>
+                <div class="card-actions">
+                    <button class="card-action primary" onclick="window.open('${item['링크']}', '_blank')">원문 열기</button>
+                </div>
+            `;
+            container.appendChild(card);
+        });
 
-            combinedData.forEach(item => {
-                const card = document.createElement('div');
-                card.className = 'card';
-                card.innerHTML = `
-                    <div class="source">#${item.source}</div>
-                    <a href="${item['링크'] || '#'}" target="_blank" class="title">${item['제목'] || '제목 없음'}</a>
-                    <div class="date">${item['작성일'] || ''}</div>
-                `;
-                container.appendChild(card);
-            });
-
-            // 통계 업데이트
-            document.getElementById('total-count').innerText = combinedData.length;
-            document.getElementById('dc-count').innerText = dcData.length;
-            document.getElementById('arca-count').innerText = arcaData.length;
+        // 상단 통계 업데이트
+        const totalEl = document.getElementById('val-collected');
+        if (totalEl) {
+            totalEl.innerHTML = `${combinedData.length.toLocaleString()}<span class="unit">건</span>`;
         }
+    }
 
-        // 5. 초기화 실행
-        async function initData() {
-            try {
-                console.log("데이터 로딩 시작...");
-                // 두 시트의 데이터를 병렬로 가져옴
-                const [dcData, arcaData] = await Promise.all([
-                    fetchSheetData(GID_DC),
-                    fetchSheetData(GID_ARCA)
-                ]);
-
-                console.log("DC 데이터:", dcData.length, "건");
-                console.log("Arca 데이터:", arcaData.length, "건");
-
-                renderCards(arcaData, dcData);
-            } catch (error) {
-                console.error("데이터 로드 중 오류 발생:", error);
-                document.getElementById('card-container').innerHTML = 
-                    `<p style="color:red; text-align:center;">데이터를 불러오지 못했습니다. 스프레드시트가 '링크가 있는 모든 사용자에게 공개' 되어 있는지 확인해주세요.</p>`;
-            }
+    // 5. 초기화 실행
+    async function initData() {
+        try {
+            const [dcData, arcaData] = await Promise.all([
+                fetchSheetData(GID_DC),
+                fetchSheetData(GID_ARCA)
+            ]);
+            renderCards(arcaData, dcData);
+        } catch (error) {
+            console.error("데이터 로드 오류:", error);
         }
+    }
 
-        window.addEventListener('DOMContentLoaded', initData);
-    </script>
+    window.addEventListener('DOMContentLoaded', initData);
+</script>
 
 <!-- ─── TOP BAR ─── -->
 <header class="topbar">
