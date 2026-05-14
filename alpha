@@ -1,0 +1,2591 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>livere — Buzz</title>
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --bg: #0c0d11;
+  --surface: #14151b;
+  --elev: #1a1b22;
+  --hover: #1f2029;
+  --text: #ececf0;
+  --text-dim: #9a9aac;
+  --text-mute: #5d5d70;
+  --border: #23242e;
+  --border-strong: #2f303c;
+
+  /* 단일 메인 컬러 + 뉴트럴만 사용 */
+  --brand: #4f7ce4;
+  --brand-hi: #6b94f2;
+  --brand-lo: #3a63c7;
+  --brand-soft: rgba(79,124,228,0.12);
+  --brand-ghost: rgba(79,124,228,0.06);
+
+  /* 감성은 3단계만 (뉴트럴에 가깝게) */
+  --pos: #4ba882;
+  --neg: #d56565;
+  --neu: #8b8b9a;
+
+  --transition: 160ms cubic-bezier(0.4, 0, 0.2, 1);
+  --radius: 10px;
+  --radius-sm: 8px;
+
+  /* 스트림·인사이트 반응형 컬럼 — 인사이트 = 스트림 × 1.5 */
+  /* 컨테이너 폭이 커질수록 컬럼 수 자동 증가. 스트림 3일 때 인사이트 2 비율 유지. */
+  --stream-col-min: 320px;
+  --insight-col-min: calc(var(--stream-col-min) * 1.5);   /* 480px */
+  --stream-col-gap: 18px;
+  --insight-col-gap: 14px;
+}
+
+[data-theme="light"] {
+  --bg: #f6f7f9;
+  --surface: #ffffff;
+  --elev: #ffffff;
+  --hover: #eef0f4;
+  --text: #17181f;
+  --text-dim: #5a5d6b;
+  --text-mute: #9698a5;
+  --border: #e6e8ee;
+  --border-strong: #d1d4dc;
+  --brand: #3a63c7;
+  --brand-hi: #4f7ce4;
+  --brand-lo: #284a9f;
+  --brand-soft: rgba(58,99,199,0.10);
+  --brand-ghost: rgba(58,99,199,0.05);
+  --pos: #2f7f5f;
+  --neg: #b53c3c;
+  --neu: #6c6d7b;
+}
+
+html { font-size: 16px; }
+
+body {
+  font-family: 'Inter', 'Pretendard', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  font-size: 16px;
+  line-height: 1.55;
+  font-feature-settings: 'cv11', 'ss01';
+  -webkit-font-smoothing: antialiased;
+  overflow-x: hidden;
+}
+
+.tnum { font-variant-numeric: tabular-nums; }
+
+button { font-family: inherit; cursor: pointer; color: inherit; background: none; border: none; }
+input  { font-family: inherit; color: inherit; }
+
+/* ── 스크롤바 ─ */
+*::-webkit-scrollbar { width: 8px; height: 8px; }
+*::-webkit-scrollbar-track { background: transparent; }
+*::-webkit-scrollbar-thumb {
+  background: var(--border-strong); border-radius: 8px;
+}
+*::-webkit-scrollbar-thumb:hover { background: var(--text-mute); }
+
+/* ── Top Bar ─────────────────────────────── */
+.topbar {
+  position: fixed; top: 0; left: 0; right: 0; z-index: 50;
+  display: grid; grid-template-columns: 280px 1fr 280px;
+  align-items: center;
+  padding: 0 18px; height: 60px;
+  background: var(--bg);
+  border-bottom: 1px solid var(--border);
+}
+
+.topbar-left  { display: flex; align-items: center; gap: 12px; }
+.topbar-mid   { display: flex; align-items: center; justify-content: center; }
+.topbar-right { display: flex; align-items: center; justify-content: flex-end; gap: 8px; }
+
+.brand {
+  font-size: 16px; font-weight: 700;
+  letter-spacing: -0.01em;
+  color: var(--text);
+  text-decoration: none;
+  display: flex; align-items: center; gap: 8px;
+}
+.brand-mark {
+  width: 22px; height: 22px;
+  background: var(--brand);
+  border-radius: 6px;
+  display: grid; place-items: center;
+  font-size: 11px; font-weight: 800;
+  color: white;
+  letter-spacing: 0;
+}
+
+.topbar-divider { width: 1px; height: 20px; background: var(--border); }
+
+.ws-switch {
+  display: flex; align-items: center; gap: 8px;
+  padding: 6px 10px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  font-size: 13px;
+  color: var(--text-dim);
+  transition: var(--transition);
+}
+.ws-switch:hover { background: var(--hover); color: var(--text); }
+.ws-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--pos); }
+.ws-name { font-weight: 600; color: var(--text); }
+.ws-caret { color: var(--text-mute); margin-left: 2px; }
+
+/* 검색바 — 중앙, 와이드 */
+.search-wrap {
+  width: 100%; max-width: 680px;
+  position: relative;
+}
+.search {
+  width: 100%;
+  display: flex; align-items: center; gap: 10px;
+  padding: 0 14px;
+  height: 40px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  transition: var(--transition);
+}
+.search:focus-within {
+  border-color: var(--brand);
+  background: var(--elev);
+  box-shadow: 0 0 0 3px var(--brand-soft);
+}
+.search svg { color: var(--text-mute); flex-shrink: 0; }
+.search input {
+  flex: 1; background: transparent; border: none; outline: none;
+  font-size: 14px; color: var(--text);
+}
+.search input::placeholder { color: var(--text-mute); }
+.search-kbd {
+  font-family: ui-monospace, 'SF Mono', Menlo, monospace;
+  font-size: 11px;
+  color: var(--text-mute);
+  border: 1px solid var(--border-strong);
+  border-radius: 4px;
+  padding: 1px 5px;
+  flex-shrink: 0;
+}
+.search-filters {
+  display: flex; align-items: center;
+  gap: 4px;
+  padding-right: 4px;
+  border-right: 1px solid var(--border);
+  margin-right: 2px;
+}
+.sf-chip {
+  display: inline-flex; align-items: center; gap: 4px;
+  padding: 4px 10px;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-dim);
+  border-radius: 7px;
+  transition: var(--transition);
+  white-space: nowrap;
+}
+.sf-chip:hover { background: var(--hover); color: var(--text); }
+.sf-chip.active { background: var(--brand-soft); color: var(--brand-hi); }
+.sf-chip .caret { color: currentColor; opacity: .6; }
+
+/* top 아이콘 버튼 */
+.icon-btn {
+  display: inline-grid; place-items: center;
+  width: 36px; height: 36px;
+  border-radius: 8px;
+  color: var(--text-dim);
+  transition: var(--transition);
+  position: relative;
+}
+.icon-btn:hover { background: var(--hover); color: var(--text); }
+.icon-btn .dot-alert {
+  position: absolute; top: 8px; right: 8px;
+  width: 6px; height: 6px; border-radius: 50%;
+  background: var(--neg);
+  border: 1.5px solid var(--bg);
+}
+
+.avatar {
+  width: 32px; height: 32px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--brand-hi), var(--brand-lo));
+  display: grid; place-items: center;
+  font-size: 12px; font-weight: 700;
+  color: white;
+  margin-left: 2px;
+  cursor: pointer;
+}
+
+/* ── Layout ─────────────────────────────── */
+.layout { padding-top: 60px; }
+
+.sidebar {
+  position: fixed; top: 60px; bottom: 0;
+  background: var(--bg);
+  overflow: hidden;
+  transition: width var(--transition);
+  display: flex; flex-direction: column;
+  z-index: 30;
+}
+.sidebar-inner {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+.sidebar-l {
+  left: 0;
+  width: var(--sb-l-w, 248px);
+  border-right: 1px solid var(--border);
+}
+.sidebar-r {
+  right: 0;
+  width: var(--sb-r-w, 380px);
+  border-left: 1px solid var(--border);
+}
+.sidebar.collapsed { width: 0 !important; border: none; }
+
+/* 리사이즈 핸들 */
+.sb-resize {
+  position: absolute; top: 0; bottom: 0;
+  width: 4px;
+  cursor: col-resize;
+  z-index: 40;
+  transition: background var(--transition);
+}
+.sb-resize:hover, .sb-resize.dragging { background: var(--brand-soft); }
+.sidebar-l .sb-resize { right: -2px; }
+.sidebar-r .sb-resize { left: -2px; }
+
+/* 사이드바 토글 핸들 (외부, 접혔을 때) */
+.sb-handle {
+  position: fixed; top: 50%; transform: translateY(-50%);
+  width: 20px; height: 56px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  display: grid; place-items: center;
+  color: var(--text-mute);
+  z-index: 35;
+  transition: var(--transition);
+}
+.sb-handle:hover { color: var(--text); background: var(--hover); }
+.sb-handle-l {
+  left: 0;
+  border-left: none;
+  border-radius: 0 8px 8px 0;
+}
+.sb-handle-r {
+  right: 0;
+  border-right: none;
+  border-radius: 8px 0 0 8px;
+}
+.sb-handle { display: none; }
+.sb-handle.show { display: grid; }
+
+/* 사이드바 헤더 */
+.sb-head {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 18px 20px 12px;
+  position: sticky; top: 0;
+  background: var(--bg);
+  z-index: 2;
+}
+.sb-head-left { display: flex; align-items: center; gap: 10px; }
+.sb-head-title {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--text);
+  letter-spacing: -0.01em;
+}
+.sb-head-count {
+  display: inline-grid; place-items: center;
+  min-width: 22px; height: 22px;
+  padding: 0 7px;
+  border-radius: 11px;
+  background: var(--brand);
+  color: white;
+  font-size: 12px; font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+.sb-head-count.zero { background: var(--elev); color: var(--text-mute); border: 1px solid var(--border); }
+.sb-head-actions { display: flex; gap: 2px; }
+
+.sb-section {
+  padding: 4px 10px 14px;
+}
+.sb-section-title {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 10px 6px 6px;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-mute);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+.sb-section-title .count { color: var(--text-mute); font-weight: 500; letter-spacing: 0; text-transform: none; font-size: 12px; }
+
+.sb-item {
+  display: flex; align-items: center; gap: 10px;
+  padding: 8px 8px;
+  border-radius: 8px;
+  font-size: 14px;
+  color: var(--text-dim);
+  transition: var(--transition);
+  cursor: pointer;
+  position: relative;
+}
+.sb-item:hover { background: var(--hover); color: var(--text); }
+.sb-item.active { background: var(--brand-soft); color: var(--brand-hi); }
+.sb-item.active .sb-item-count { color: var(--brand-hi); }
+
+.sb-icon {
+  width: 22px; height: 22px; flex-shrink: 0;
+  display: grid; place-items: center;
+  border-radius: 6px;
+  font-size: 11px; font-weight: 700;
+  background: var(--elev);
+  color: var(--text-dim);
+  border: 1px solid var(--border);
+}
+.sb-item:hover .sb-icon { background: var(--hover); }
+.sb-item.active .sb-icon { background: var(--brand); color: white; border-color: var(--brand); }
+
+.sb-item-label { flex: 1; font-weight: 500; }
+.sb-item-count {
+  font-size: 12px;
+  color: var(--text-mute);
+  font-variant-numeric: tabular-nums;
+}
+.sb-item-dot {
+  width: 6px; height: 6px; border-radius: 50%;
+}
+.sb-item-dot.on  { background: var(--pos); }
+.sb-item-dot.off { background: var(--text-mute); }
+
+.sb-topic::before { content: '#'; color: var(--text-mute); font-weight: 600; margin-right: -4px; }
+
+.avatar-xs {
+  width: 22px; height: 22px;
+  border-radius: 50%;
+  background: var(--elev);
+  border: 1px solid var(--border);
+  display: grid; place-items: center;
+  font-size: 10px; font-weight: 700;
+  color: var(--text-dim);
+  flex-shrink: 0;
+}
+
+/* ── Main ─────────────────────────────── */
+.main {
+  margin-left: var(--sb-l-w, 248px);
+  margin-right: var(--sb-r-w, 380px);
+  padding: 24px 36px 80px;
+  transition: margin var(--transition);
+  min-height: calc(100vh - 60px);
+}
+.sidebar-l.collapsed ~ .main,
+body.sb-l-collapsed .main { margin-left: 0; }
+body.sb-r-collapsed .main { margin-right: 0; }
+
+/* 실시간 수집 상태 (페이지 상단, ws-status 대체) — 컴팩트 */
+.live-head {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 16px;
+  padding: 10px 16px;
+  background: linear-gradient(135deg, var(--brand-ghost), transparent 80%);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  margin-bottom: 14px;
+}
+.live-left { flex: 1; min-width: 0; }
+.live-title-row {
+  display: flex; align-items: baseline; gap: 10px;
+  margin-bottom: 2px;
+  flex-wrap: wrap;
+}
+.live-eyebrow {
+  font-size: 11px; font-weight: 600;
+  color: var(--brand-hi);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+.live-indicator {
+  display: inline-flex; align-items: center; gap: 6px;
+  font-size: 11px;
+  color: var(--pos);
+  font-weight: 600;
+  align-self: center;
+}
+.live-pulse {
+  width: 7px; height: 7px; border-radius: 50%;
+  background: var(--pos);
+  position: relative;
+}
+.live-pulse::before {
+  content: ''; position: absolute; inset: -3px; border-radius: 50%;
+  background: var(--pos); opacity: 0.35;
+  animation: pulse 1.8s ease-in-out infinite;
+}
+@keyframes pulse { 0%, 100% { transform: scale(0.9); opacity: 0.35; } 50% { transform: scale(1.8); opacity: 0; } }
+
+.live-title { font-size: 18px; font-weight: 700; letter-spacing: -0.02em; margin: 0; display: inline; }
+.live-sub { font-size: 12px; color: var(--text-dim); margin-bottom: 6px; }
+
+/* 실시간 수집 카운터 */
+.live-stats {
+  display: flex; align-items: stretch; gap: 20px;
+  padding-left: 20px;
+  border-left: 1px solid var(--border);
+}
+.live-stat {
+  min-width: 88px;
+}
+.live-stat-label {
+  font-size: 11px; font-weight: 600;
+  color: var(--text-mute);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  margin-bottom: 2px;
+}
+.live-stat-val {
+  font-size: 22px; font-weight: 700;
+  color: var(--text);
+  font-variant-numeric: tabular-nums;
+  line-height: 1.1;
+}
+.live-stat-val .unit { font-size: 12px; font-weight: 500; color: var(--text-mute); margin-left: 2px; }
+.live-stat-delta {
+  font-size: 12px; font-weight: 600;
+  color: var(--pos);
+  font-variant-numeric: tabular-nums;
+  margin-top: 2px;
+}
+.live-stat-delta.neg { color: var(--neg); }
+
+.live-actions {
+  display: flex; align-items: center; gap: 6px;
+  align-self: center;
+}
+.btn-refresh {
+  display: inline-flex; align-items: center; gap: 8px;
+  padding: 9px 14px;
+  font-size: 13px; font-weight: 600;
+  border: 1px solid var(--brand);
+  color: var(--brand-hi);
+  border-radius: 8px;
+  background: var(--brand-ghost);
+  transition: var(--transition);
+}
+.btn-refresh:hover { background: var(--brand-soft); }
+.btn-refresh svg { transition: transform 600ms ease; }
+.btn-refresh.loading svg { animation: spin 900ms linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* 실시간 구독 토글 */
+.btn-subscribe {
+  display: inline-flex; align-items: center; gap: 8px;
+  padding: 9px 14px;
+  font-size: 13px; font-weight: 600;
+  border: 1px solid var(--border);
+  color: var(--text-dim);
+  border-radius: 8px;
+  background: var(--surface);
+  transition: var(--transition);
+}
+.btn-subscribe:hover { color: var(--text); border-color: var(--border-strong); }
+.btn-subscribe.on {
+  background: var(--pos);
+  border-color: var(--pos);
+  color: white;
+}
+.btn-subscribe.on:hover { opacity: 0.92; }
+.btn-subscribe .sub-dot {
+  width: 7px; height: 7px; border-radius: 50%;
+  background: var(--text-mute);
+}
+.btn-subscribe.on .sub-dot {
+  background: white;
+  box-shadow: 0 0 0 4px rgba(255,255,255,0.25);
+  animation: pulse-dot 1.6s ease-in-out infinite;
+}
+@keyframes pulse-dot {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(255,255,255,0); }
+  50% { box-shadow: 0 0 0 5px rgba(255,255,255,0.35); }
+}
+
+.btn-ghost {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 8px 12px;
+  font-size: 13px; font-weight: 500;
+  color: var(--text-dim);
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  transition: var(--transition);
+}
+.btn-ghost:hover { background: var(--hover); color: var(--text); }
+
+/* 실시간 수집 티커 (새 데이터가 흐르는 표현) */
+.live-ticker {
+  display: flex; align-items: center; gap: 10px;
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px dashed var(--border);
+  font-size: 12px;
+  color: var(--text-dim);
+  overflow: hidden;
+  white-space: nowrap;
+}
+.live-ticker-label {
+  font-size: 11px; font-weight: 600;
+  color: var(--text-mute);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  flex-shrink: 0;
+}
+.live-ticker-items {
+  display: flex; gap: 24px;
+  animation: ticker 28s linear infinite;
+}
+.live-ticker-item {
+  display: inline-flex; align-items: center; gap: 8px;
+  flex-shrink: 0;
+}
+.live-ticker-item .src {
+  font-size: 10px; font-weight: 700;
+  padding: 1px 5px; border-radius: 4px;
+  background: var(--elev);
+  color: var(--text-dim);
+  border: 1px solid var(--border);
+}
+.live-ticker-item .snippet { color: var(--text); }
+.live-ticker-item .ago { color: var(--text-mute); font-size: 12px; }
+@keyframes ticker {
+  from { transform: translateX(0); }
+  to   { transform: translateX(-50%); }
+}
+
+/* ── 섹션 헤더 ── */
+.section-head {
+  display: flex; align-items: flex-end; justify-content: space-between;
+  margin: 28px 0 14px;
+}
+.section-title {
+  font-size: 18px; font-weight: 700;
+  letter-spacing: -0.01em;
+  display: flex; align-items: baseline; gap: 10px;
+}
+.section-title .count {
+  font-size: 13px; font-weight: 500;
+  color: var(--text-mute);
+}
+.section-sub { font-size: 13px; color: var(--text-dim); }
+.section-actions { display: flex; align-items: center; gap: 12px; }
+.btn-stream-expand { gap: 6px; padding: 6px 10px; }
+
+/* 스트림 전체 보기 — LiveHead + 인사이트 숨김, 스트림만 풀-뷰 */
+body.stream-maximized .live-head,
+body.stream-maximized .insights-head,
+body.stream-maximized .insights { display: none; }
+body.stream-maximized .btn-stream-expand { color: var(--brand-hi); border-color: var(--brand); }
+
+/* ── 인사이트 카드 ── */
+/* 반응형 auto-fit — 컨테이너 폭이 커질수록 컬럼 수 자동 증가 (N 제한 없음).
+   카드 최소 폭은 스트림의 1.5배 (--insight-col-min). 스트림 3일 때 인사이트 2 보장. */
+.insights {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(var(--insight-col-min), 1fr));
+  gap: var(--insight-col-gap);
+}
+
+.insight-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 18px;
+  transition: var(--transition);
+  cursor: pointer;
+  overflow: hidden;
+}
+.insight-card:hover {
+  border-color: var(--border-strong);
+  transform: translateY(-1px);
+  box-shadow: 0 6px 18px rgba(0,0,0,0.2);
+}
+[data-theme="light"] .insight-card:hover { box-shadow: 0 6px 18px rgba(0,0,0,0.06); }
+
+.ic-head {
+  display: flex; align-items: center; justify-content: space-between;
+  margin-bottom: 10px;
+}
+.ic-title { font-size: 13px; color: var(--text-dim); font-weight: 500; }
+.ic-delta {
+  font-size: 12px; font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  padding: 2px 8px;
+  border-radius: 12px;
+  background: var(--brand-ghost);
+  color: var(--brand-hi);
+}
+.ic-delta.neg { color: var(--neg); background: rgba(213,101,101,0.1); }
+.ic-delta.pos { color: var(--pos); background: rgba(75,168,130,0.1); }
+
+.ic-value {
+  font-size: 28px; font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.02em;
+  line-height: 1.1;
+  margin-bottom: 10px;
+}
+.ic-value .unit { font-size: 13px; font-weight: 500; color: var(--text-mute); margin-left: 3px; }
+
+/* 감성 게이지 */
+.gauge { height: 6px; border-radius: 3px; background: var(--elev); overflow: hidden; display: flex; margin-bottom: 8px; }
+.gauge .pos { background: var(--pos); }
+.gauge .neu { background: var(--neu); }
+.gauge .neg { background: var(--neg); }
+.gauge-legend {
+  display: flex; gap: 14px; font-size: 12px;
+  color: var(--text-dim);
+  font-variant-numeric: tabular-nums;
+}
+.gauge-legend span::before {
+  content: ''; display: inline-block;
+  width: 8px; height: 8px; border-radius: 50%;
+  margin-right: 5px; vertical-align: 1px;
+}
+.gauge-legend .lg-pos::before { background: var(--pos); }
+.gauge-legend .lg-neu::before { background: var(--neu); }
+.gauge-legend .lg-neg::before { background: var(--neg); }
+
+/* 스파크 바 */
+.spark {
+  display: flex; align-items: flex-end; gap: 3px; height: 44px;
+  margin-bottom: 4px;
+}
+.spark .bar {
+  flex: 1;
+  background: var(--brand);
+  opacity: 0.45;
+  border-radius: 2px 2px 0 0;
+  min-height: 3px;
+}
+.spark .bar:last-child { opacity: 1; }
+
+.ic-foot {
+  display: flex; justify-content: space-between;
+  font-size: 11px; color: var(--text-mute);
+}
+
+/* 매체별 유입 */
+.media-rows { display: flex; flex-direction: column; gap: 7px; }
+.media-row {
+  display: grid; grid-template-columns: 78px 1fr 60px;
+  align-items: center;
+  gap: 10px; font-size: 12px;
+}
+.media-row .mname { color: var(--text-dim); }
+.media-row .mbar { height: 6px; background: var(--elev); border-radius: 3px; overflow: hidden; }
+.media-row .mbar .fill { height: 100%; background: var(--brand); border-radius: 3px; }
+.media-row .mval { text-align: right; color: var(--text-dim); font-variant-numeric: tabular-nums; }
+
+/* 키워드 태그 */
+.kw-cloud { display: flex; flex-wrap: wrap; gap: 6px; }
+.kw {
+  font-size: 12px; font-weight: 500;
+  padding: 4px 10px;
+  border-radius: 12px;
+  border: 1px solid var(--border);
+  color: var(--text-dim);
+  transition: var(--transition);
+}
+.kw:hover { color: var(--text); border-color: var(--border-strong); }
+.kw.hot { background: var(--brand-soft); color: var(--brand-hi); border-color: transparent; }
+.kw.new { border-color: var(--brand); color: var(--brand-hi); }
+
+/* 상세 펼침 */
+.ic-detail {
+  display: none;
+  margin-top: 16px;
+  padding-top: 14px;
+  border-top: 1px dashed var(--border);
+}
+.insight-card.expanded .ic-detail { display: block; }
+/* 펼침 시 현재 그리드의 모든 컬럼에 걸침 (N 컬럼 무관) */
+.insight-card.expanded { grid-column: 1 / -1; }
+
+.ic-detail-title { font-size: 13px; font-weight: 600; margin-bottom: 10px; color: var(--text); }
+.ic-detail-text  { font-size: 13px; color: var(--text-dim); line-height: 1.7; }
+.ic-detail-grid {
+  display: grid; grid-template-columns: repeat(4, 1fr);
+  gap: 12px;
+  margin-top: 14px;
+}
+.ic-detail-metric {
+  background: var(--elev);
+  border-radius: 8px;
+  padding: 10px 12px;
+}
+.ic-detail-metric-label { font-size: 11px; color: var(--text-mute); text-transform: uppercase; letter-spacing: 0.05em; }
+.ic-detail-metric-val { font-size: 17px; font-weight: 700; margin-top: 2px; font-variant-numeric: tabular-nums; }
+
+/* ── 스트림 ── */
+.stream-ctl {
+  display: flex; align-items: center; gap: 10px;
+  margin: 16px 0 14px;
+  padding: 10px 14px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+}
+.stream-ctl .seg {
+  display: inline-flex;
+  background: var(--elev);
+  border-radius: 8px;
+  padding: 3px;
+  gap: 2px;
+}
+.stream-ctl .seg button {
+  padding: 5px 12px;
+  border-radius: 6px;
+  font-size: 13px; font-weight: 500;
+  color: var(--text-dim);
+  transition: var(--transition);
+}
+.stream-ctl .seg button:hover { color: var(--text); }
+.stream-ctl .seg button.active {
+  background: var(--surface);
+  color: var(--text);
+  box-shadow: 0 1px 2px rgba(0,0,0,0.1);
+}
+[data-theme="light"] .stream-ctl .seg button.active { box-shadow: 0 1px 3px rgba(0,0,0,0.06); }
+
+.stream-ctl .divider { width: 1px; height: 20px; background: var(--border); }
+.stream-ctl .spacer { flex: 1; }
+
+/* 새 데이터 알림 바 */
+.new-bar {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 10px 14px;
+  background: var(--brand-soft);
+  border: 1px solid var(--brand);
+  border-radius: 10px;
+  margin-bottom: 14px;
+  font-size: 13px;
+  color: var(--brand-hi);
+  cursor: pointer;
+  transition: var(--transition);
+}
+.new-bar:hover { background: var(--brand-ghost); }
+.new-bar-left { display: flex; align-items: center; gap: 10px; }
+.new-bar-left .pulse {
+  width: 8px; height: 8px; border-radius: 50%;
+  background: var(--brand-hi);
+  position: relative;
+}
+.new-bar-left .pulse::before {
+  content: ''; position: absolute; inset: -3px; border-radius: 50%;
+  background: var(--brand-hi); opacity: 0.4;
+  animation: pulse 1.6s ease-in-out infinite;
+}
+.new-bar-count { font-weight: 700; font-variant-numeric: tabular-nums; }
+
+/* 스트림 카드 — Pinterest Masonry */
+/* column-width 기반 반응형 — 컨테이너 폭이 커질수록 컬럼 수 자동 증가 (N 제한 없음).
+   컬럼 최소 폭은 인사이트의 2/3 (--stream-col-min). */
+.stream {
+  column-count: auto;
+  column-width: var(--stream-col-min);
+  column-gap: var(--stream-col-gap);
+}
+
+.card {
+  break-inside: avoid;
+  display: block;
+  width: 100%;
+  margin-bottom: 18px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  overflow: hidden;
+  transition: transform var(--transition), box-shadow var(--transition), border-color var(--transition);
+  position: relative;
+}
+.card:hover {
+  border-color: var(--border-strong);
+  transform: translateY(-2px);
+  box-shadow: 0 10px 30px rgba(0,0,0,0.25);
+}
+[data-theme="light"] .card:hover { box-shadow: 0 10px 30px rgba(0,0,0,0.08); }
+
+/* 롱프레스/선택 모드 */
+.card.long-pressing {
+  animation: long-press 600ms ease-out;
+}
+@keyframes long-press {
+  0% { transform: scale(1); }
+  50% { transform: scale(0.98); }
+  100% { transform: scale(1); }
+}
+
+body.selecting .card { cursor: pointer; user-select: none; }
+body.selecting .card:hover { transform: none; box-shadow: none; }
+
+.card-select-check {
+  position: absolute; top: 12px; left: 12px; z-index: 5;
+  width: 26px; height: 26px;
+  border-radius: 50%;
+  background: var(--surface);
+  border: 2px solid var(--border-strong);
+  display: none;
+  align-items: center; justify-content: center;
+  transition: var(--transition);
+  box-shadow: 0 2px 6px rgba(0,0,0,0.15);
+}
+body.selecting .card-select-check { display: flex; }
+.card-select-check svg {
+  width: 14px; height: 14px;
+  color: transparent;
+}
+.card.selected .card-select-check {
+  background: var(--brand);
+  border-color: var(--brand);
+}
+.card.selected .card-select-check svg { color: white; }
+.card.selected {
+  outline: 2px solid var(--brand);
+  outline-offset: -1px;
+}
+body.selecting .card .card-actions,
+body.selecting .card .card-attrib .attrib-time { pointer-events: none; opacity: 0.5; }
+
+/* 스트림 액션바 — 선택 도구 */
+.stream-select-bar {
+  display: inline-flex; align-items: center; gap: 8px;
+}
+.sel-count {
+  font-size: 13px; font-weight: 600;
+  color: var(--text);
+  padding: 5px 10px;
+  background: var(--brand-soft);
+  color: var(--brand-hi);
+  border-radius: 7px;
+  font-variant-numeric: tabular-nums;
+}
+.sel-count.zero { background: var(--elev); color: var(--text-dim); }
+
+.sel-btn {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 7px 11px;
+  font-size: 13px; font-weight: 500;
+  color: var(--text-dim);
+  border: 1px solid var(--border);
+  background: var(--surface);
+  border-radius: 8px;
+  transition: var(--transition);
+}
+.sel-btn:hover { color: var(--text); border-color: var(--border-strong); background: var(--hover); }
+.sel-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+.sel-btn.danger:not(:disabled):hover { color: var(--neg); border-color: var(--neg); background: rgba(213,101,101,0.08); }
+.sel-btn.primary { color: var(--brand-hi); border-color: var(--brand); background: var(--brand-ghost); }
+.sel-btn.primary:hover { background: var(--brand-soft); }
+
+/* ── 카드 미디어 (최상단) ── */
+.card-media {
+  position: relative;
+  width: 100%;
+  background: var(--elev);
+  overflow: hidden;
+}
+.card-media.img { background: center/cover no-repeat; }
+.card-media.img.placeholder {
+  display: grid; place-items: center;
+  background: linear-gradient(135deg, var(--brand-ghost), var(--elev));
+  color: var(--text-mute);
+  font-size: 14px;
+  min-height: 260px;
+}
+.card-media.vid {
+  background: #000;
+  display: grid; place-items: center;
+  min-height: 240px;
+}
+.card-media.vid::after {
+  content: ''; position: absolute; inset: 0;
+  background: radial-gradient(circle at center, transparent 55%, rgba(0,0,0,0.5));
+}
+.card-media.vid svg {
+  position: relative; z-index: 1;
+  width: 58px; height: 58px;
+  color: white;
+  filter: drop-shadow(0 2px 10px rgba(0,0,0,0.5));
+}
+.card-vid-dur {
+  position: absolute; right: 12px; bottom: 12px;
+  z-index: 2;
+  font-size: 12px; font-weight: 600;
+  color: white;
+  background: rgba(0,0,0,0.7);
+  padding: 3px 8px; border-radius: 5px;
+  font-variant-numeric: tabular-nums;
+}
+
+/* 카드 유형별 높이 (Pinterest masonry 다양성) */
+.card-media.h-sm { height: 180px; }
+.card-media.h-md { height: 260px; }
+.card-media.h-lg { height: 340px; }
+.card-media.h-xl { height: 420px; }
+
+/* ── 카드 콘텐츠 ── */
+.card-content { padding: 18px 20px 6px; }
+
+.card-title {
+  font-size: 19px; font-weight: 700;
+  line-height: 1.4;
+  letter-spacing: -0.01em;
+  margin-bottom: 8px;
+  color: var(--text);
+  cursor: pointer;
+}
+.card-title:hover { color: var(--brand-hi); }
+
+.card-body {
+  font-size: 16px;
+  color: var(--text-dim);
+  line-height: 1.65;
+  display: -webkit-box;
+  -webkit-line-clamp: 4;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.card-body.quote {
+  font-size: 17px;
+  color: var(--text);
+  font-weight: 500;
+  line-height: 1.6;
+  -webkit-line-clamp: unset;
+  display: block;
+}
+
+/* ── 프로필 (출처 작게) ── */
+.card-attrib {
+  display: flex; align-items: center;
+  gap: 10px;
+  padding: 14px 20px 14px;
+  margin-top: 4px;
+  border-top: 1px solid var(--border);
+}
+.profile-avatar {
+  width: 34px; height: 34px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  display: grid; place-items: center;
+  font-size: 13px; font-weight: 700;
+  color: white;
+  letter-spacing: -0.01em;
+  position: relative;
+  background: linear-gradient(135deg, #5e8bf0, #3a63c7);
+}
+.profile-avatar.a1 { background: linear-gradient(135deg, #6b94f2, #3a63c7); }
+.profile-avatar.a2 { background: linear-gradient(135deg, #7aa3de, #3e6bb8); }
+.profile-avatar.a3 { background: linear-gradient(135deg, #8b6bc2, #5f4593); }
+.profile-avatar.a4 { background: linear-gradient(135deg, #d97474, #a94848); }
+.profile-avatar.a5 { background: linear-gradient(135deg, #5ba87e, #2f7f5f); }
+.profile-avatar.a6 { background: linear-gradient(135deg, #d49b3f, #9e7325); }
+.profile-avatar.a7 { background: linear-gradient(135deg, #5a6b85, #384657); }
+.profile-avatar.a8 { background: linear-gradient(135deg, #b985a8, #8b5d7e); }
+.profile-avatar .verify {
+  position: absolute; bottom: -2px; right: -2px;
+  width: 14px; height: 14px;
+  border-radius: 50%;
+  background: var(--brand-hi);
+  display: grid; place-items: center;
+  border: 2px solid var(--surface);
+}
+.profile-avatar .verify svg { width: 7px; height: 7px; color: white; }
+
+.attrib-meta {
+  flex: 1;
+  min-width: 0;
+  display: flex; flex-direction: column; gap: 1px;
+}
+.attrib-name {
+  font-size: 14px; font-weight: 600;
+  color: var(--text);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.attrib-sub {
+  display: flex; align-items: center; gap: 6px;
+  font-size: 12px;
+  color: var(--text-mute);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.attrib-src {
+  font-size: 10px; font-weight: 700;
+  letter-spacing: 0.05em;
+  padding: 2px 6px;
+  border-radius: 4px;
+  background: var(--elev);
+  color: var(--text-dim);
+  border: 1px solid var(--border);
+  flex-shrink: 0;
+  text-transform: uppercase;
+}
+.attrib-time {
+  font-size: 12px;
+  color: var(--text-mute);
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+  display: flex; align-items: center; gap: 5px;
+}
+.sentiment-mark {
+  width: 8px; height: 8px; border-radius: 50%;
+  display: inline-block;
+  flex-shrink: 0;
+}
+.sentiment-mark.pos { background: var(--pos); }
+.sentiment-mark.neg { background: var(--neg); }
+.sentiment-mark.neu { background: var(--neu); }
+
+/* 미니 차트 */
+.card-chart {
+  margin: 0 20px 16px;
+  padding: 14px;
+  background: var(--elev);
+  border-radius: 10px;
+}
+.card-chart-title { font-size: 13px; color: var(--text-dim); margin-bottom: 10px; font-weight: 500; }
+.mini-bars { display: flex; align-items: flex-end; gap: 5px; height: 56px; }
+.mini-bars .bar {
+  flex: 1;
+  background: var(--brand);
+  opacity: 0.45;
+  border-radius: 3px 3px 0 0;
+}
+.mini-bars .bar.hi { opacity: 1; }
+
+/* 카드 메트릭 */
+.card-metrics {
+  display: flex; gap: 18px; flex-wrap: wrap;
+  padding: 0 20px 14px;
+  font-size: 13px;
+  color: var(--text-dim);
+}
+.card-metric {
+  display: inline-flex; align-items: center; gap: 6px;
+  font-variant-numeric: tabular-nums;
+}
+.card-metric svg { width: 14px; height: 14px; }
+
+/* 액션바 — 호버 시에만 강조 */
+.card-actions {
+  display: flex; align-items: center; gap: 4px;
+  padding: 10px 14px 14px;
+  border-top: 1px solid var(--border);
+  flex-wrap: wrap;
+}
+.card-action {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 7px 11px;
+  font-size: 13px; font-weight: 500;
+  color: var(--text-dim);
+  border-radius: 8px;
+  transition: var(--transition);
+}
+.card-action:hover { background: var(--hover); color: var(--text); }
+.card-action.primary { color: var(--brand-hi); }
+.card-action.primary:hover { background: var(--brand-soft); }
+.card-action.danger:hover { color: var(--neg); background: rgba(213,101,101,0.08); }
+.card-action.pushed { background: var(--brand-soft); color: var(--brand-hi); }
+.card-actions .spacer { flex: 1; }
+
+/* 카드 상세 펼침 */
+.card-detail {
+  display: none;
+  margin: 0 14px 14px;
+  padding: 14px 16px;
+  background: var(--elev);
+  border-radius: 10px;
+  font-size: 14px;
+}
+.card.expanded .card-detail { display: block; }
+.card.expanded .card-body { -webkit-line-clamp: unset; display: block; }
+
+.cd-row {
+  display: flex; justify-content: space-between; gap: 12px;
+  padding: 7px 0;
+  border-bottom: 1px dashed var(--border);
+  font-size: 13px;
+}
+.cd-row:last-child { border: none; }
+.cd-row .k { color: var(--text-mute); }
+.cd-row .v { color: var(--text); font-variant-numeric: tabular-nums; }
+
+.cd-block { margin-top: 14px; }
+.cd-block-title { font-size: 12px; color: var(--text-mute); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 8px; font-weight: 600; }
+.cd-replies { display: flex; flex-direction: column; gap: 8px; }
+.cd-reply {
+  padding: 10px 12px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  font-size: 13px;
+  color: var(--text-dim);
+  line-height: 1.6;
+}
+.cd-reply .a { font-weight: 600; color: var(--text); margin-right: 6px; }
+.cd-reply .t { color: var(--text-mute); font-size: 12px; margin-left: 6px; }
+
+/* ── Right: 알림 중심 ── */
+.n-filters {
+  display: flex; gap: 6px;
+  padding: 4px 16px 14px;
+}
+.n-chip {
+  flex: 1;
+  padding: 8px 10px;
+  font-size: 13px; font-weight: 500;
+  color: var(--text-dim);
+  background: var(--elev);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  transition: var(--transition);
+  text-align: center;
+}
+.n-chip:hover { color: var(--text); }
+.n-chip.active { background: var(--brand-soft); color: var(--brand-hi); border-color: transparent; }
+
+.notif-list { padding: 0 12px 20px; display: flex; flex-direction: column; gap: 8px; }
+.notif {
+  display: flex; gap: 12px;
+  padding: 14px 14px;
+  border-radius: 12px;
+  cursor: pointer;
+  transition: var(--transition);
+  border: 1px solid transparent;
+}
+.notif:hover { background: var(--hover); border-color: var(--border); }
+.notif.unread { background: var(--brand-ghost); }
+.notif.unread::before {
+  content: ''; display: block;
+  width: 7px; height: 7px; border-radius: 50%;
+  background: var(--brand-hi);
+  margin-top: 8px; flex-shrink: 0;
+}
+.notif.read::before {
+  content: ''; display: block;
+  width: 7px; flex-shrink: 0;
+}
+
+.notif-body { flex: 1; min-width: 0; }
+.notif-title {
+  font-size: 15px; font-weight: 600;
+  color: var(--text);
+  margin-bottom: 4px;
+  line-height: 1.4;
+}
+.notif-sub {
+  font-size: 13px;
+  color: var(--text-dim);
+  line-height: 1.55;
+  margin-bottom: 8px;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.notif-meta {
+  display: flex; align-items: center; gap: 10px;
+  font-size: 12px;
+  color: var(--text-mute);
+  flex-wrap: wrap;
+}
+.notif-kind {
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 4px;
+  background: var(--elev);
+  border: 1px solid var(--border);
+  font-size: 11px;
+}
+.notif-kind.alert { color: var(--neg); }
+.notif-kind.hot { color: var(--brand-hi); background: var(--brand-soft); border-color: transparent; }
+.notif-kind.done { color: var(--pos); }
+
+.notif-actions {
+  display: flex; gap: 6px;
+  margin-top: 10px;
+}
+.notif-actions .btn {
+  padding: 6px 12px;
+  font-size: 13px; font-weight: 500;
+  border-radius: 7px;
+  color: var(--text-dim);
+  border: 1px solid var(--border);
+  background: var(--surface);
+  transition: var(--transition);
+}
+.notif-actions .btn:hover { color: var(--text); border-color: var(--border-strong); }
+.notif-actions .btn.primary { background: var(--brand); border-color: var(--brand); color: white; }
+.notif-actions .btn.primary:hover { background: var(--brand-lo); }
+
+/* 스켈레톤 플로팅 토스트 */
+.toast {
+  position: fixed; bottom: 24px; left: 50%;
+  transform: translate(-50%, 80px);
+  padding: 10px 18px;
+  background: var(--text);
+  color: var(--bg);
+  border-radius: 100px;
+  font-size: 13px;
+  font-weight: 600;
+  box-shadow: 0 6px 20px rgba(0,0,0,0.25);
+  z-index: 100;
+  transition: transform 240ms cubic-bezier(0.2, 1, 0.3, 1);
+  pointer-events: none;
+}
+.toast.show { transform: translate(-50%, 0); }
+
+</style>
+</head>
+<body>
+
+<script>
+// 1. Google Sheets 데이터 로드 함수
+async function loadSheetData(sheetId, gid = 0) {
+    // .xlsx 파일이라도 구글 시트로 열려 있다면 export 주소를 통해 CSV로 변환 가능합니다.
+    const url = `https://docs.google.com/spreadsheets/d/${sheetId}/export?format=csv&gid=${gid}`;
+    const response = await fetch(url);
+    if (!response.ok) throw new Error('시트 접근 권한이 없거나 ID가 잘못되었습니다.');
+    const csv = await response.text();
+    return parseCSV(csv);
+}
+
+// 2. CSV 파싱 함수
+function parseCSV(csv) {
+    const lines = csv.split('\n');
+    const headers = lines[0].split(',').map(h => h.trim());
+    return lines.slice(1).filter(line => line.trim() !== '').map(line => {
+        const values = line.split(',');
+        return headers.reduce((obj, header, i) => {
+            obj[header] = values[i]?.trim() || '';
+            return obj;
+        }, {});
+    });
+}
+
+// 3. UI 업데이트: 통계
+function updateStats(arca, dc) {
+    document.getElementById('arca-count').innerText = arca.length.toLocaleString();
+    document.getElementById('dc-count').innerText = dc.length.toLocaleString();
+    document.getElementById('total-count').innerText = (arca.length + dc.length).toLocaleString();
+}
+
+// 4. UI 업데이트: 스트림 카드 렌더링
+function renderStreamCards(arca, dc) {
+    const container = document.getElementById('card-container');
+    container.innerHTML = ''; // 로딩 메시지 제거
+
+    // 두 데이터를 합치고 최신순 정렬 (수집일시 기준)
+    const combinedData = [
+        ...arca.map(item => ({ ...item, _source: 'ArcaLive' })),
+        ...dc.map(item => ({ ...item, _source: 'DCinside' }))
+    ].sort((a, b) => new Date(b.수집일시) - new Date(a.수집일시));
+
+    combinedData.forEach(item => {
+        const card = document.createElement('div');
+        card.className = 'stream-card';
+        card.innerHTML = `
+            <div class="source">[${item._source}] ${item.채널 || ''}</div>
+            <a href="${item.URL}" target="_blank" class="title">${item.제목 || '제목 없음'}</a>
+            <div class="meta">
+                <span class="author">👤 ${item.작성자 || '익명'}</span> | 
+                <span>조회 ${item.조회 || 0}</span> | 
+                <span>추천 ${item.추천 || 0}</span>
+            </div>
+            <div style="font-size:11px; color:#bbb; margin-top:10px;">수집: ${item.수집일시 || '-'}</div>
+        `;
+        container.appendChild(card);
+    });
+}
+
+// 5. 초기화 함수 (데이터 로드 및 실행)
+async function initData() {
+    try {
+        // 찾아낸 Arca 및 DC 시트 ID 적용
+       // const arcaData = await loadSheetData('1g6-llNu5ti9dPXw5QPw8VW4W_VZViQfi3j5b_6EArXU');
+        const dcData = await loadSheetData('1ppXzcbJqK7Yk2jgm2a-SmTyTKLsGU0AfLZJhd8ALJoM');
+        
+    //    console.log('Arca 로드 완료:', arcaData.length);
+        console.log('DC 로드 완료:', dcData.length);
+
+   //     renderStreamCards(arcaData, dcData);
+        updateStats(arcaData, dcData);
+    } catch (error) {
+        console.error('데이터 로드 실패:', error);
+        document.getElementById('card-container').innerHTML = 
+            `<p style="color:red;">데이터 로딩 중 오류가 발생했습니다: ${error.message}<br>
+            (시트가 "링크가 있는 모든 사용자"에게 공개되어 있는지 확인해 주세요.)</p>`;
+    }
+}
+
+window.addEventListener('DOMContentLoaded', initData);
+</script>
+
+<!-- ─── TOP BAR ─── -->
+<header class="topbar">
+  <div class="topbar-left">
+    <button class="icon-btn" id="toggle-left" title="좌측 패널 토글">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+    </button>
+    <a class="brand" href="#">
+      <span class="brand-mark">L</span>
+      livere
+    </a>
+    <div class="topbar-divider"></div>
+    <button class="ws-switch">
+      <span class="ws-dot"></span>
+      <span class="ws-name">LiveRe 컨슈머인사이트</span>
+      <svg class="ws-caret" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="6 9 12 15 18 9"/></svg>
+    </button>
+  </div>
+
+  <div class="topbar-mid">
+    <div class="search-wrap">
+      <div class="search">
+        <div class="search-filters">
+          <button class="sf-chip active">
+            최근 24시간
+            <svg class="caret" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="6 9 12 15 18 9"/></svg>
+          </button>
+          <button class="sf-chip">
+            모든 소스
+            <svg class="caret" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="6 9 12 15 18 9"/></svg>
+          </button>
+          <button class="sf-chip">
+            감성: 전체
+            <svg class="caret" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="6 9 12 15 18 9"/></svg>
+          </button>
+        </div>
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        <input type="text" placeholder="토픽, 키워드, 매체, 프로필로 검색…" value="AI 규제">
+        <span class="search-kbd">⌘ K</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="topbar-right">
+    <button class="icon-btn" id="theme-toggle" title="테마 전환">
+      <svg id="ic-moon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+    </button>
+    <button class="icon-btn" title="도움말">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M9.5 9a2.5 2.5 0 1 1 3.5 2.3c-1 .4-1.5 1-1.5 1.7"/><circle cx="12" cy="17" r=".5" fill="currentColor"/></svg>
+    </button>
+    <button class="icon-btn" id="toggle-right" title="우측 패널 토글">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+      <span class="dot-alert"></span>
+    </button>
+    <div class="avatar">KJ</div>
+  </div>
+</header>
+
+<!-- 접혔을 때 핸들 -->
+<button class="sb-handle sb-handle-l" id="handle-left" title="좌측 패널 열기">
+  <svg width="10" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="9 18 15 12 9 6"/></svg>
+</button>
+<button class="sb-handle sb-handle-r" id="handle-right" title="우측 패널 열기">
+  <svg width="10" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="15 18 9 12 15 6"/></svg>
+</button>
+
+<div class="layout">
+
+  <!-- ─── SIDEBAR LEFT ─── -->
+  <aside class="sidebar sidebar-l" id="sb-left">
+    <div class="sb-resize" id="resize-left"></div>
+    <div class="sidebar-inner">
+
+      <div class="sb-section">
+        <div class="sb-section-title">소스 <span class="count">8</span></div>
+        <button class="sb-item active"><span class="sb-icon">N</span><span class="sb-item-label">뉴스</span><span class="sb-item-count">1,284</span></button>
+        <button class="sb-item"><span class="sb-icon">NV</span><span class="sb-item-label">네이버</span><span class="sb-item-count">947</span></button>
+        <button class="sb-item"><span class="sb-icon">X</span><span class="sb-item-label">X (Twitter)</span><span class="sb-item-count">2,310</span></button>
+        <button class="sb-item"><span class="sb-icon">IG</span><span class="sb-item-label">Instagram</span><span class="sb-item-count">612</span></button>
+        <button class="sb-item"><span class="sb-icon">YT</span><span class="sb-item-label">YouTube</span><span class="sb-item-count">184</span></button>
+        <button class="sb-item"><span class="sb-icon">TT</span><span class="sb-item-label">TikTok</span><span class="sb-item-count">73</span></button>
+        <button class="sb-item"><span class="sb-icon">L</span><span class="sb-item-label">LiveRe 댓글</span><span class="sb-item-count">2,410</span></button>
+        <button class="sb-item"><span class="sb-icon">B</span><span class="sb-item-label">블로그</span><span class="sb-item-count">329</span></button>
+      </div>
+
+      <div class="sb-section">
+        <div class="sb-section-title">토픽 <span class="count">4</span></div>
+        <button class="sb-item active sb-topic"><span class="sb-item-label">AI 규제</span><span class="sb-item-dot on"></span></button>
+        <button class="sb-item sb-topic"><span class="sb-item-label">2026 대선 여론</span><span class="sb-item-dot on"></span></button>
+        <button class="sb-item sb-topic"><span class="sb-item-label">K-POP 글로벌</span><span class="sb-item-dot on"></span></button>
+        <button class="sb-item sb-topic"><span class="sb-item-label">서울 관광</span><span class="sb-item-dot off"></span></button>
+      </div>
+
+      <!-- ⬇ 프로필 (@) — NEW -->
+      <div class="sb-section">
+        <div class="sb-section-title">프로필 <span class="count">6</span></div>
+        <button class="sb-item sb-profile"><span class="avatar-xs">KB</span><span class="sb-item-label">김보라 기자</span><span class="sb-item-count">42</span></button>
+        <button class="sb-item sb-profile"><span class="avatar-xs">TI</span><span class="sb-item-label">techinsider_kr</span><span class="sb-item-count">78</span></button>
+        <button class="sb-item sb-profile"><span class="avatar-xs">MZ</span><span class="sb-item-label">mzdaily</span><span class="sb-item-count">31</span></button>
+        <button class="sb-item sb-profile"><span class="avatar-xs">VS</span><span class="sb-item-label">visitseoul_official</span><span class="sb-item-count">124</span></button>
+        <button class="sb-item sb-profile"><span class="avatar-xs">JH</span><span class="sb-item-label">정환 · IT 애널리스트</span><span class="sb-item-count">19</span></button>
+        <button class="sb-item sb-profile"><span class="avatar-xs">+</span><span class="sb-item-label" style="color: var(--text-mute)">프로필 추가</span></button>
+      </div>
+
+      <div class="sb-section">
+        <div class="sb-section-title">저장된 뷰 <span class="count">3</span></div>
+        <button class="sb-item">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg>
+          <span class="sb-item-label">주간 부정 급증</span>
+        </button>
+        <button class="sb-item">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg>
+          <span class="sb-item-label">인플루언서 언급</span>
+        </button>
+        <button class="sb-item">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg>
+          <span class="sb-item-label">영상 콘텐츠만</span>
+        </button>
+      </div>
+
+    </div>
+  </aside>
+
+  <!-- ─── MAIN ─── -->
+  <main class="main">
+
+    <!-- 실시간 수집 상태 -->
+    <section class="live-head">
+      <div class="live-left">
+        <div class="live-title-row">
+          <span class="live-eyebrow">활성 토픽</span>
+          <h1 class="live-title">AI 규제</h1>
+          <span class="live-indicator">
+            <span class="live-pulse"></span>
+            LIVE
+          </span>
+        </div>
+        <p class="live-sub">8개 소스에서 실시간 수집 중 · 마지막 업데이트 방금 전</p>
+        <div class="live-ticker">
+          <span class="live-ticker-label">방금 수집</span>
+          <div class="live-ticker-items" id="ticker">
+            <span class="live-ticker-item"><span class="src">N</span><span class="snippet">연합뉴스 — 국회 본회의 통과 임박</span><span class="ago">방금</span></span>
+            <span class="live-ticker-item"><span class="src">X</span><span class="snippet">@techinsider_kr — 스타트업 생태계 우려</span><span class="ago">12초 전</span></span>
+            <span class="live-ticker-item"><span class="src">YT</span><span class="snippet">테크인사이트 — 법안 해설 영상 업로드</span><span class="ago">32초 전</span></span>
+            <span class="live-ticker-item"><span class="src">L</span><span class="snippet">LiveRe — 새 댓글 3건 (긍정)</span><span class="ago">1분 전</span></span>
+            <span class="live-ticker-item"><span class="src">N</span><span class="snippet">연합뉴스 — 국회 본회의 통과 임박</span><span class="ago">방금</span></span>
+            <span class="live-ticker-item"><span class="src">X</span><span class="snippet">@techinsider_kr — 스타트업 생태계 우려</span><span class="ago">12초 전</span></span>
+            <span class="live-ticker-item"><span class="src">YT</span><span class="snippet">테크인사이트 — 법안 해설 영상 업로드</span><span class="ago">32초 전</span></span>
+            <span class="live-ticker-item"><span class="src">L</span><span class="snippet">LiveRe — 새 댓글 3건 (긍정)</span><span class="ago">1분 전</span></span>
+          </div>
+        </div>
+      </div>
+
+      <div class="live-stats">
+        <div class="live-stat">
+          <div class="live-stat-label">수집</div>
+          <div class="live-stat-val tnum" id="val-collected">8,149<span class="unit">건</span></div>
+          <div class="live-stat-delta">+124 · 5분</div>
+        </div>
+        <div class="live-stat">
+          <div class="live-stat-label">처리 대기</div>
+          <div class="live-stat-val tnum">23<span class="unit">건</span></div>
+          <div class="live-stat-delta">실시간</div>
+        </div>
+        <div class="live-stat">
+          <div class="live-stat-label">도달</div>
+          <div class="live-stat-val tnum">3.2<span class="unit">M</span></div>
+          <div class="live-stat-delta">+18% · 24h</div>
+        </div>
+      </div>
+
+      <div class="live-actions">
+        <button class="btn-subscribe on" id="btn-subscribe">
+          <span class="sub-dot"></span>
+          <span class="sub-label">실시간 구독중</span>
+        </button>
+        <button class="btn-refresh" id="btn-refresh">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10"/><path d="M20.49 15a9 9 0 0 1-14.85 3.36L1 14"/></svg>
+          새로고침
+        </button>
+      </div>
+    </section>
+
+    <!-- 인사이트 -->
+    <div class="section-head insights-head">
+      <div class="section-title">인사이트 <span class="count">핵심 6</span></div>
+      <div class="section-sub">카드를 클릭하면 상세가 펼쳐집니다</div>
+    </div>
+
+    <div class="insights" id="insights">
+
+      <button class="insight-card" data-exp>
+        <div class="ic-head"><span class="ic-title">감성 비율</span><span class="ic-delta neg">-4.2pp</span></div>
+        <div class="ic-value tnum">58<span class="unit">% 긍정</span></div>
+        <div class="gauge">
+          <div class="pos" style="width:58%"></div>
+          <div class="neu" style="width:27%"></div>
+          <div class="neg" style="width:15%"></div>
+        </div>
+        <div class="gauge-legend"><span class="lg-pos">긍정 58</span><span class="lg-neu">중립 27</span><span class="lg-neg">부정 15</span></div>
+        <div class="ic-detail">
+          <div class="ic-detail-title">지난 24시간 변화</div>
+          <p class="ic-detail-text">
+            국회 본회의 통과 임박 보도 이후 부정 감성이 약 4.2%p 증가했습니다.
+            특히 스타트업 커뮤니티(LiveRe 댓글)에서 규제 강도에 대한 우려가 집중적으로 표출되고 있으며,
+            X(Twitter)에서는 개발자 계정을 중심으로 비판적 논조가 확산되는 중입니다.
+          </p>
+          <div class="ic-detail-grid">
+            <div class="ic-detail-metric"><div class="ic-detail-metric-label">긍정 (건)</div><div class="ic-detail-metric-val tnum">4,726</div></div>
+            <div class="ic-detail-metric"><div class="ic-detail-metric-label">중립 (건)</div><div class="ic-detail-metric-val tnum">2,200</div></div>
+            <div class="ic-detail-metric"><div class="ic-detail-metric-label">부정 (건)</div><div class="ic-detail-metric-val tnum">1,223</div></div>
+            <div class="ic-detail-metric"><div class="ic-detail-metric-label">신뢰도</div><div class="ic-detail-metric-val tnum">94.1%</div></div>
+          </div>
+        </div>
+      </button>
+
+      <button class="insight-card" data-exp>
+        <div class="ic-head"><span class="ic-title">버즈 유입량 (24h)</span><span class="ic-delta pos">+31.2%</span></div>
+        <div class="ic-value tnum">8,149<span class="unit">건</span></div>
+        <div class="spark">
+          <div class="bar" style="height:18%"></div>
+          <div class="bar" style="height:22%"></div>
+          <div class="bar" style="height:28%"></div>
+          <div class="bar" style="height:24%"></div>
+          <div class="bar" style="height:38%"></div>
+          <div class="bar" style="height:42%"></div>
+          <div class="bar" style="height:36%"></div>
+          <div class="bar" style="height:48%"></div>
+          <div class="bar" style="height:54%"></div>
+          <div class="bar" style="height:72%"></div>
+          <div class="bar" style="height:88%"></div>
+          <div class="bar" style="height:100%"></div>
+        </div>
+        <div class="ic-foot"><span>12시간 전</span><span>현재</span></div>
+        <div class="ic-detail">
+          <div class="ic-detail-title">피크 시점 분석</div>
+          <p class="ic-detail-text">
+            오전 9시 국회 본회의 개회 30분 전후로 뉴스 소스에서 유입이 급증했고,
+            정오 이후 소셜로 확산되며 2차 피크가 형성되었습니다.
+            현재 시간당 약 680건이 유입되고 있으며 평소 대비 2.1배 수준입니다.
+          </p>
+        </div>
+      </button>
+
+      <button class="insight-card" data-exp>
+        <div class="ic-head"><span class="ic-title">매체별 유입</span><span class="ic-delta">상위 6</span></div>
+        <div class="media-rows">
+          <div class="media-row"><span class="mname">뉴스</span><div class="mbar"><div class="fill" style="width:88%"></div></div><span class="mval tnum">1,284</span></div>
+          <div class="media-row"><span class="mname">X</span><div class="mbar"><div class="fill" style="width:82%"></div></div><span class="mval tnum">2,310</span></div>
+          <div class="media-row"><span class="mname">LiveRe</span><div class="mbar"><div class="fill" style="width:78%"></div></div><span class="mval tnum">2,410</span></div>
+          <div class="media-row"><span class="mname">네이버</span><div class="mbar"><div class="fill" style="width:62%"></div></div><span class="mval tnum">947</span></div>
+          <div class="media-row"><span class="mname">Instagram</span><div class="mbar"><div class="fill" style="width:38%"></div></div><span class="mval tnum">612</span></div>
+          <div class="media-row"><span class="mname">블로그</span><div class="mbar"><div class="fill" style="width:22%"></div></div><span class="mval tnum">329</span></div>
+        </div>
+        <div class="ic-detail">
+          <div class="ic-detail-title">매체별 톤 차이</div>
+          <p class="ic-detail-text">
+            뉴스는 중립적 사실 보도가 72%로 우세하지만,
+            X·LiveRe 등 소셜 계열에서는 부정 감성이 평균 1.8배 높게 나타납니다.
+            Instagram은 긍정 콘텐츠 비중이 높은 편이며 주로 이벤트 관련입니다.
+          </p>
+        </div>
+      </button>
+
+      <button class="insight-card" data-exp>
+        <div class="ic-head"><span class="ic-title">동반 키워드</span><span class="ic-delta">최근 24h</span></div>
+        <div class="kw-cloud">
+          <span class="kw hot">법안</span>
+          <span class="kw hot">본회의</span>
+          <span class="kw new">스타트업 우려</span>
+          <span class="kw">EU AI Act</span>
+          <span class="kw">규제 샌드박스</span>
+          <span class="kw new">과기정통부</span>
+          <span class="kw">저작권</span>
+          <span class="kw">딥페이크</span>
+          <span class="kw hot">오픈소스</span>
+        </div>
+        <div class="ic-detail">
+          <div class="ic-detail-title">키워드 동시 출현</div>
+          <p class="ic-detail-text">
+            "법안"+"스타트업"의 동시 출현 빈도가 전일 대비 +68% 증가했습니다.
+            이는 규제 대상 범위에 대한 산업계 반응을 보여주는 시그널로 해석됩니다.
+          </p>
+        </div>
+      </button>
+
+      <button class="insight-card" data-exp>
+        <div class="ic-head"><span class="ic-title">예상 도달량</span><span class="ic-delta pos">+18%</span></div>
+        <div class="ic-value tnum">3.2<span class="unit">M</span></div>
+        <div class="media-rows">
+          <div class="media-row"><span class="mname">뉴스 도달</span><div class="mbar"><div class="fill" style="width:76%"></div></div><span class="mval tnum">1.9M</span></div>
+          <div class="media-row"><span class="mname">X 임프레션</span><div class="mbar"><div class="fill" style="width:52%"></div></div><span class="mval tnum">820K</span></div>
+          <div class="media-row"><span class="mname">YouTube 조회</span><div class="mbar"><div class="fill" style="width:28%"></div></div><span class="mval tnum">340K</span></div>
+        </div>
+        <div class="ic-detail">
+          <div class="ic-detail-title">도달 대비 참여율</div>
+          <p class="ic-detail-text">
+            도달량은 전일 대비 +18%이지만 참여율(ER)은 2.4% → 2.9%로 개선되었습니다.
+            토픽에 대한 관심도가 단순 노출을 넘어 적극적 반응으로 이어지는 추세입니다.
+          </p>
+        </div>
+      </button>
+
+      <button class="insight-card" data-exp>
+        <div class="ic-head"><span class="ic-title">지역 분포</span><span class="ic-delta">국내</span></div>
+        <div class="media-rows">
+          <div class="media-row"><span class="mname">서울</span><div class="mbar"><div class="fill" style="width:92%"></div></div><span class="mval tnum">38%</span></div>
+          <div class="media-row"><span class="mname">경기</span><div class="mbar"><div class="fill" style="width:52%"></div></div><span class="mval tnum">22%</span></div>
+          <div class="media-row"><span class="mname">부산</span><div class="mbar"><div class="fill" style="width:28%"></div></div><span class="mval tnum">11%</span></div>
+          <div class="media-row"><span class="mname">대구</span><div class="mbar"><div class="fill" style="width:16%"></div></div><span class="mval tnum">6%</span></div>
+          <div class="media-row"><span class="mname">기타</span><div class="mbar"><div class="fill" style="width:42%"></div></div><span class="mval tnum">23%</span></div>
+        </div>
+        <div class="ic-detail">
+          <div class="ic-detail-title">지역별 특이 사항</div>
+          <p class="ic-detail-text">
+            서울·경기의 IT 업계 종사자 비중이 높아 전체 부정 감성의 주요 원천이 되고 있습니다.
+            반면 부산은 스타트업 지원 정책 맥락에서 중립적 보도 비중이 높습니다.
+          </p>
+        </div>
+      </button>
+
+    </div>
+
+    <!-- 스트림 섹션 -->
+    <div class="section-head stream-head">
+      <div class="section-title">스트림 <span class="count">지난 24시간 · 12건</span></div>
+      <div class="section-actions">
+        <span class="section-sub">클릭하면 전문과 메타데이터가 펼쳐집니다</span>
+        <button class="btn-ghost btn-stream-expand" id="btn-stream-expand" title="스트림만 전체 보기">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="15 3 21 3 21 9"/>
+            <polyline points="9 21 3 21 3 15"/>
+            <line x1="21" y1="3" x2="14" y2="10"/>
+            <line x1="3" y1="21" x2="10" y2="14"/>
+          </svg>
+          <span class="btn-label">전체 보기</span>
+        </button>
+      </div>
+    </div>
+
+    <div class="stream-ctl">
+      <div class="seg">
+        <button class="active">최신순</button>
+        <button>영향도순</button>
+        <button>감성순</button>
+      </div>
+      <div class="divider"></div>
+      <div class="seg">
+        <button class="active">전체</button>
+        <button>긍정</button>
+        <button>중립</button>
+        <button>부정</button>
+      </div>
+      <div class="spacer"></div>
+      <div class="stream-select-bar">
+        <span class="sel-count zero" id="sel-count">0개 선택됨</span>
+        <button class="sel-btn" id="sel-all">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+          전체 선택
+        </button>
+        <button class="sel-btn" id="sel-clear">해제</button>
+        <button class="sel-btn danger" id="sel-delete" disabled>
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/></svg>
+          삭제
+        </button>
+      </div>
+      <div class="divider"></div>
+      <button class="btn-ghost">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+        내보내기
+      </button>
+    </div>
+
+    <div class="new-bar" id="new-bar">
+      <span class="new-bar-left">
+        <span class="pulse"></span>
+        <span>새 데이터 <span class="new-bar-count">37건</span>이 도착했습니다</span>
+      </span>
+      <span>지금 불러오기 →</span>
+    </div>
+
+    <div class="stream" id="stream">
+
+      <!-- 1. 뉴스 -->
+      <article class="card" data-exp>
+        <div class="card-media img h-md" style="background-image: url('https://images.unsplash.com/photo-1589578527966-fdac0f44566c?auto=format&fit=crop&w=800&q=80')"></div>
+        <div class="card-content">
+          <h3 class="card-title">AI 기본법안, 국회 본회의 통과 임박…스타트업 업계는 '규제 완화' 요구</h3>
+          <p class="card-body">
+            국회 과학기술정보방송통신위원회가 지난주 통과시킨 '인공지능 기본법안'이 이번 주 본회의에 상정될 예정이다.
+            법안은 고위험 AI 시스템에 대한 사전 영향평가 의무화, 생성형 AI의 출처 표시 등을 담고 있다.
+          </p>
+        </div>
+        <div class="card-metrics">
+          <span class="card-metric"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>142K</span>
+          <span class="card-metric"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>284</span>
+          <span class="card-metric">재게재 38</span>
+        </div>
+        <div class="card-attrib">
+          <div class="profile-avatar a7">박</div>
+          <div class="attrib-meta">
+            <div class="attrib-name">박성진 기자</div>
+            <div class="attrib-sub"><span class="attrib-src">연합뉴스</span><span>· 국회취재팀</span></div>
+          </div>
+          <div class="attrib-time"><span class="sentiment-mark neu"></span>12분</div>
+        </div>
+        <div class="card-actions">
+          <button class="card-action primary">원문 열기</button>
+          <button class="card-action">저장</button>
+          <button class="card-action">공유</button>
+          <div class="spacer"></div>
+          <button class="card-action">번역</button>
+          <button class="card-action">요약</button>
+        </div>
+        <div class="card-detail">
+          <div class="cd-row"><span class="k">원문 URL</span><span class="v">yna.co.kr/ai-regulation-2026</span></div>
+          <div class="cd-row"><span class="k">수집 시각</span><span class="v">2026-04-15 14:23:12</span></div>
+          <div class="cd-row"><span class="k">감성 점수</span><span class="v">+0.12 (약한 긍정)</span></div>
+          <div class="cd-row"><span class="k">주요 엔티티</span><span class="v">국회, 과기정통부, 스타트업얼라이언스</span></div>
+          <div class="cd-block">
+            <div class="cd-block-title">AI 요약</div>
+            <p style="font-size:14px; color:var(--text-dim); line-height:1.7;">
+              국회 과방위가 통과시킨 AI 기본법은 고위험 AI 영향평가·생성형 AI 출처 표시를 핵심으로 하며,
+              본회의 통과가 임박했다. 업계는 규제 강도 조정을 요구 중이다.
+            </p>
+          </div>
+        </div>
+      </article>
+
+      <!-- 2. X (Twitter) — 인플루언서 -->
+      <article class="card" data-exp>
+        <div class="card-content">
+          <p class="card-body quote">
+            AI 기본법 초안 다시 읽어봤습니다. 스타트업 입장에서 문제는 '고위험'의 정의가 너무 광범위하다는 것.
+            의료·금융은 당연하지만, "사회적 영향이 큰 서비스" 조항은 해석에 따라 거의 모든 B2C AI가 포함됩니다.
+            실무진 해설 스레드 이어갑니다 (1/7)
+          </p>
+        </div>
+        <div class="card-metrics">
+          <span class="card-metric">리포스트 1.2K</span>
+          <span class="card-metric">좋아요 4.8K</span>
+          <span class="card-metric">인용 180</span>
+        </div>
+        <div class="card-attrib">
+          <div class="profile-avatar a2">TI<div class="verify"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><polyline points="20 6 9 17 4 12"/></svg></div></div>
+          <div class="attrib-meta">
+            <div class="attrib-name">테크인사이트</div>
+            <div class="attrib-sub"><span class="attrib-src">X</span><span>@techinsider_kr · 84.2K</span></div>
+          </div>
+          <div class="attrib-time"><span class="sentiment-mark neg"></span>28분</div>
+        </div>
+        <div class="card-actions">
+          <button class="card-action primary">답글</button>
+          <button class="card-action">리포스트</button>
+          <button class="card-action">좋아요</button>
+          <button class="card-action">전체 스레드</button>
+          <div class="spacer"></div>
+          <button class="card-action">팔로우</button>
+        </div>
+        <div class="card-detail">
+          <div class="cd-row"><span class="k">프로필 점수</span><span class="v">영향력 9.2 / 신뢰도 8.7</span></div>
+          <div class="cd-row"><span class="k">과거 언급</span><span class="v">AI 규제 관련 포스트 42건</span></div>
+          <div class="cd-row"><span class="k">팔로워 겹침</span><span class="v">우리 팔로워와 18% 겹침</span></div>
+        </div>
+      </article>
+
+      <!-- 3. LiveRe 댓글 -->
+      <article class="card" data-exp>
+        <div class="card-content">
+          <p class="card-body quote">
+            규제는 필요하지만 속도가 문제다. 글로벌 빅테크는 이미 AI Act 대응 인력을 수백명씩 고용했는데,
+            국내 스타트업은 영향평가 비용만으로도 버티기 힘들 것. 결국 외산 AI에 종속되는 결과가 될 수 있다.
+          </p>
+        </div>
+        <div class="card-metrics">
+          <span class="card-metric">공감 324</span>
+          <span class="card-metric">비공감 28</span>
+          <span class="card-metric">대댓글 47</span>
+        </div>
+        <div class="card-attrib">
+          <div class="profile-avatar a4">박</div>
+          <div class="attrib-meta">
+            <div class="attrib-name">박○○ · 정식회원</div>
+            <div class="attrib-sub"><span class="attrib-src">LiveRe</span><span>중앙일보 · 댓글 1,247</span></div>
+          </div>
+          <div class="attrib-time"><span class="sentiment-mark neg"></span>34분</div>
+        </div>
+        <div class="card-actions">
+          <button class="card-action primary">대댓글 작성</button>
+          <button class="card-action">공감</button>
+          <button class="card-action">숨김</button>
+          <div class="spacer"></div>
+          <button class="card-action danger">신고</button>
+          <button class="card-action danger">삭제</button>
+        </div>
+        <div class="card-detail">
+          <div class="cd-row"><span class="k">게시 기사</span><span class="v">[사설] AI 규제, 혁신의 걸림돌 되어선 안 된다</span></div>
+          <div class="cd-row"><span class="k">PII 마스킹</span><span class="v">이름 자동 처리됨 · 원본 조회 가능</span></div>
+          <div class="cd-row"><span class="k">작성자 이력</span><span class="v">최근 30일 긍정 62%, 부정 22%</span></div>
+          <div class="cd-block">
+            <div class="cd-block-title">대댓글 미리보기 (3 / 47)</div>
+            <div class="cd-replies">
+              <div class="cd-reply"><span class="a">김○○</span>동의합니다. 속도 조절이 핵심이죠 <span class="t">12분 전</span></div>
+              <div class="cd-reply"><span class="a">이○○</span>그래도 안전장치는 필요합니다 <span class="t">8분 전</span></div>
+              <div class="cd-reply"><span class="a">최○○</span>영향평가 가이드라인이라도 먼저 공개했으면… <span class="t">3분 전</span></div>
+            </div>
+          </div>
+        </div>
+      </article>
+
+      <!-- 4. 뉴스 (경제지) — 차트 포함 -->
+      <article class="card" data-exp>
+        <div class="card-media img h-sm" style="background-image: url('https://images.unsplash.com/photo-1559136555-9303baea8ebd?auto=format&fit=crop&w=800&q=80')"></div>
+        <div class="card-content">
+          <h3 class="card-title">AI 규제, 투자 심리에 미친 영향…스타트업 투자 3주 연속 감소</h3>
+          <p class="card-body">
+            AI 규제 법안 논의가 본격화된 지난 3주간, 국내 AI 스타트업에 대한 신규 투자 건수가 주간 평균
+            22% 감소한 것으로 나타났다.
+          </p>
+        </div>
+        <div class="card-chart">
+          <div class="card-chart-title">주간 AI 스타트업 투자 건수</div>
+          <div class="mini-bars">
+            <div class="bar hi" style="height:88%"></div>
+            <div class="bar hi" style="height:92%"></div>
+            <div class="bar hi" style="height:80%"></div>
+            <div class="bar" style="height:64%"></div>
+            <div class="bar" style="height:52%"></div>
+            <div class="bar" style="height:40%"></div>
+          </div>
+        </div>
+        <div class="card-attrib">
+          <div class="profile-avatar a5">KB</div>
+          <div class="attrib-meta">
+            <div class="attrib-name">김보라 기자</div>
+            <div class="attrib-sub"><span class="attrib-src">한경BIZ</span><span>· 산업부</span></div>
+          </div>
+          <div class="attrib-time"><span class="sentiment-mark pos"></span>1시간</div>
+        </div>
+        <div class="card-actions">
+          <button class="card-action primary">원문 열기</button>
+          <button class="card-action">저장</button>
+          <button class="card-action">공유</button>
+          <div class="spacer"></div>
+          <button class="card-action">차트 다운로드</button>
+        </div>
+        <div class="card-detail">
+          <div class="cd-row"><span class="k">데이터 출처</span><span class="v">더브이씨 · 벤처캐피탈협회 집계</span></div>
+          <div class="cd-row"><span class="k">주요 피투자사 변동</span><span class="v">총 38 → 24건 (주간)</span></div>
+        </div>
+      </article>
+
+      <!-- 5. YouTube -->
+      <article class="card" data-exp>
+        <div class="card-media vid h-md" style="background: url('https://images.unsplash.com/photo-1677442136019-21780ecad995?auto=format&fit=crop&w=800&q=80') center/cover">
+          <svg viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+          <span class="card-vid-dur">8:42</span>
+        </div>
+        <div class="card-content">
+          <h3 class="card-title">AI 기본법 8분 완전정리: 당신의 프로덕트에 뭐가 달라지나</h3>
+        </div>
+        <div class="card-metrics">
+          <span class="card-metric">조회 32K</span>
+          <span class="card-metric">좋아요 2.1K</span>
+          <span class="card-metric">댓글 320</span>
+        </div>
+        <div class="card-attrib">
+          <div class="profile-avatar a2">TI</div>
+          <div class="attrib-meta">
+            <div class="attrib-name">테크인사이트</div>
+            <div class="attrib-sub"><span class="attrib-src">YouTube</span><span>구독 412K</span></div>
+          </div>
+          <div class="attrib-time"><span class="sentiment-mark neu"></span>2시간</div>
+        </div>
+        <div class="card-actions">
+          <button class="card-action primary">영상 재생</button>
+          <button class="card-action">자막 보기</button>
+          <button class="card-action">요약</button>
+          <div class="spacer"></div>
+          <button class="card-action">채널 팔로우</button>
+        </div>
+        <div class="card-detail">
+          <div class="cd-row"><span class="k">영상 길이</span><span class="v">8분 42초</span></div>
+          <div class="cd-row"><span class="k">자막 언어</span><span class="v">한국어, 영어</span></div>
+          <div class="cd-row"><span class="k">언급 토픽</span><span class="v">고위험 AI, 영향평가, 출처 표시, EU AI Act</span></div>
+        </div>
+      </article>
+
+      <!-- 6. Instagram -->
+      <article class="card" data-exp>
+        <div class="card-media img h-xl" style="background-image: url('https://images.unsplash.com/photo-1540575467063-178a50c2df87?auto=format&fit=crop&w=900&q=80')"></div>
+        <div class="card-content">
+          <p class="card-body">
+            Seoul AI Summit 2026 개막! 세계 40개국에서 온 AI 전문가들과 함께하는 3일간의 여정이 시작됩니다.
+            오늘 오프닝 키노트는 #AI규제와미래 를 주제로 진행됩니다.
+          </p>
+        </div>
+        <div class="card-metrics">
+          <span class="card-metric">좋아요 18.2K</span>
+          <span class="card-metric">댓글 642</span>
+          <span class="card-metric">저장 2.4K</span>
+        </div>
+        <div class="card-attrib">
+          <div class="profile-avatar a1">VS<div class="verify"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><polyline points="20 6 9 17 4 12"/></svg></div></div>
+          <div class="attrib-meta">
+            <div class="attrib-name">visitseoul_official</div>
+            <div class="attrib-sub"><span class="attrib-src">Instagram</span><span>팔로워 1.8M · 공식</span></div>
+          </div>
+          <div class="attrib-time"><span class="sentiment-mark pos"></span>3시간</div>
+        </div>
+        <div class="card-actions">
+          <button class="card-action primary">게시물 열기</button>
+          <button class="card-action">스토리 보기</button>
+          <button class="card-action">이미지 다운로드</button>
+          <div class="spacer"></div>
+          <button class="card-action">DM 보내기</button>
+        </div>
+        <div class="card-detail">
+          <div class="cd-row"><span class="k">해시태그</span><span class="v">#AI규제와미래 #SeoulAISummit2026 #서울관광</span></div>
+          <div class="cd-row"><span class="k">태그된 계정</span><span class="v">@koreatech @seoul_city</span></div>
+        </div>
+      </article>
+
+      <!-- 7. TikTok -->
+      <article class="card" data-exp>
+        <div class="card-media vid h-xl" style="background: url('https://images.unsplash.com/photo-1522529599102-193c0d76b5b6?auto=format&fit=crop&w=600&q=80') center/cover">
+          <svg viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+          <span class="card-vid-dur">0:42</span>
+        </div>
+        <div class="card-content">
+          <h3 class="card-title">MZ가 AI 규제에 진짜 화난 이유 #3가지 (법안 전문 번역해봄)</h3>
+        </div>
+        <div class="card-metrics">
+          <span class="card-metric">조회 284K</span>
+          <span class="card-metric">좋아요 28K</span>
+          <span class="card-metric">공유 4.2K</span>
+        </div>
+        <div class="card-attrib">
+          <div class="profile-avatar a8">MZ</div>
+          <div class="attrib-meta">
+            <div class="attrib-name">mzdaily</div>
+            <div class="attrib-sub"><span class="attrib-src">TikTok</span><span>팔로워 520K</span></div>
+          </div>
+          <div class="attrib-time"><span class="sentiment-mark pos"></span>4시간</div>
+        </div>
+        <div class="card-actions">
+          <button class="card-action primary">영상 재생</button>
+          <button class="card-action">사운드 저장</button>
+          <div class="spacer"></div>
+          <button class="card-action">팔로우</button>
+        </div>
+        <div class="card-detail">
+          <div class="cd-row"><span class="k">사운드</span><span class="v">오리지널 사운드 · @mzdaily</span></div>
+          <div class="cd-row"><span class="k">해시태그</span><span class="v">#AI규제 #법안해설 #MZ뉴스</span></div>
+        </div>
+      </article>
+
+      <!-- 8. 네이버 뉴스 -->
+      <article class="card" data-exp>
+        <div class="card-content">
+          <h3 class="card-title">[좌담회] AI 규제, 어디까지가 적정한가… 규제와 혁신의 균형점은</h3>
+          <p class="card-body">
+            과기정통부·스타트업얼라이언스·시민단체가 참여한 라운드테이블.
+            발표문 전체 요약과 주요 쟁점을 다각도로 정리했다. 네이버 메인 노출 중.
+          </p>
+        </div>
+        <div class="card-metrics">
+          <span class="card-metric">조회 98K</span>
+          <span class="card-metric">댓글 1,847</span>
+          <span class="card-metric">공감 2.3K</span>
+        </div>
+        <div class="card-attrib">
+          <div class="profile-avatar a5">NV</div>
+          <div class="attrib-meta">
+            <div class="attrib-name">네이버 뉴스 편집</div>
+            <div class="attrib-sub"><span class="attrib-src">네이버</span><span>좌담회 섹션</span></div>
+          </div>
+          <div class="attrib-time"><span class="sentiment-mark neu"></span>5시간</div>
+        </div>
+        <div class="card-actions">
+          <button class="card-action primary">원문 열기</button>
+          <button class="card-action">댓글 분석</button>
+          <button class="card-action">저장</button>
+          <div class="spacer"></div>
+          <button class="card-action">요약</button>
+        </div>
+        <div class="card-detail">
+          <div class="cd-row"><span class="k">댓글 감성</span><span class="v">긍정 44% · 중립 32% · 부정 24%</span></div>
+          <div class="cd-row"><span class="k">상위 키워드</span><span class="v">균형, 혁신, 규제샌드박스, EU</span></div>
+        </div>
+      </article>
+
+      <!-- 9. 블로그 -->
+      <article class="card" data-exp>
+        <div class="card-content">
+          <h3 class="card-title">AI 기본법안 실무자를 위한 영향평가 가이드 (1) 대상 판정</h3>
+          <p class="card-body">
+            법안 통과가 임박한 만큼, 우리 제품이 영향평가 대상인지 먼저 판정하는 체크리스트를 정리했습니다.
+            총 12개 항목으로, 2개 이상 해당되면 평가 대상으로 간주됩니다.
+          </p>
+        </div>
+        <div class="card-metrics">
+          <span class="card-metric">조회 8.2K</span>
+          <span class="card-metric">공감 412</span>
+          <span class="card-metric">스크랩 1.8K</span>
+        </div>
+        <div class="card-attrib">
+          <div class="profile-avatar a6">JH</div>
+          <div class="attrib-meta">
+            <div class="attrib-name">정환 · IT 애널리스트</div>
+            <div class="attrib-sub"><span class="attrib-src">블로그</span><span>이웃 14K</span></div>
+          </div>
+          <div class="attrib-time"><span class="sentiment-mark pos"></span>6시간</div>
+        </div>
+        <div class="card-actions">
+          <button class="card-action primary">원문 열기</button>
+          <button class="card-action">스크랩</button>
+          <button class="card-action">이웃 추가</button>
+          <div class="spacer"></div>
+          <button class="card-action">번역</button>
+        </div>
+        <div class="card-detail">
+          <div class="cd-row"><span class="k">시리즈</span><span class="v">AI 기본법 실무 가이드 (1/5)</span></div>
+          <div class="cd-row"><span class="k">평균 체류시간</span><span class="v">4분 18초</span></div>
+        </div>
+      </article>
+
+      <!-- 10. X (일반) -->
+      <article class="card" data-exp>
+        <div class="card-content">
+          <p class="card-body quote">
+            솔직히 우리 같은 2인 스타트업은 영향평가 용역비만으로 시드 자금의 10%가 날아감.
+            그냥 해외 제품 쓰라는 말 같음…
+          </p>
+        </div>
+        <div class="card-metrics">
+          <span class="card-metric">리포스트 420</span>
+          <span class="card-metric">좋아요 1.8K</span>
+        </div>
+        <div class="card-attrib">
+          <div class="profile-avatar a3">DC</div>
+          <div class="attrib-meta">
+            <div class="attrib-name">devcoffee_kr</div>
+            <div class="attrib-sub"><span class="attrib-src">X</span><span>@devcoffee_kr · 12.8K</span></div>
+          </div>
+          <div class="attrib-time"><span class="sentiment-mark neg"></span>7시간</div>
+        </div>
+        <div class="card-actions">
+          <button class="card-action primary">답글</button>
+          <button class="card-action">리포스트</button>
+          <button class="card-action">좋아요</button>
+          <div class="spacer"></div>
+          <button class="card-action">팔로우</button>
+        </div>
+        <div class="card-detail">
+          <div class="cd-row"><span class="k">작성자</span><span class="v">영향력 6.2 · 개발자 커뮤니티 활동 활발</span></div>
+        </div>
+      </article>
+
+      <!-- 11. LiveRe 긍정 댓글 -->
+      <article class="card" data-exp>
+        <div class="card-content">
+          <p class="card-body quote">
+            딥페이크 피해자 입장에서 AI 규제는 꼭 필요합니다. 출처 표시 의무화는 최소한의 안전장치예요.
+            혁신도 좋지만 사람이 먼저입니다.
+          </p>
+        </div>
+        <div class="card-metrics">
+          <span class="card-metric">공감 892</span>
+          <span class="card-metric">비공감 62</span>
+          <span class="card-metric">대댓글 128</span>
+        </div>
+        <div class="card-attrib">
+          <div class="profile-avatar a5">정</div>
+          <div class="attrib-meta">
+            <div class="attrib-name">정○○ · VIP</div>
+            <div class="attrib-sub"><span class="attrib-src">LiveRe</span><span>한겨레 · 댓글 3,211</span></div>
+          </div>
+          <div class="attrib-time"><span class="sentiment-mark pos"></span>8시간</div>
+        </div>
+        <div class="card-actions">
+          <button class="card-action primary">대댓글 작성</button>
+          <button class="card-action pushed">공감됨</button>
+          <div class="spacer"></div>
+          <button class="card-action danger">신고</button>
+          <button class="card-action danger">삭제</button>
+        </div>
+        <div class="card-detail">
+          <div class="cd-row"><span class="k">게시 기사</span><span class="v">딥페이크 피해 2년간 3배 증가…AI 규제 시급</span></div>
+          <div class="cd-row"><span class="k">작성자 이력</span><span class="v">최근 30일 긍정 78%</span></div>
+        </div>
+      </article>
+
+      <!-- 12. 뉴스 (해설) -->
+      <article class="card" data-exp>
+        <div class="card-media img h-sm" style="background-image: url('https://images.unsplash.com/photo-1520637836862-4d197d17c93a?auto=format&fit=crop&w=800&q=80')"></div>
+        <div class="card-content">
+          <h3 class="card-title">EU AI Act와 비교해본 한국 AI 기본법… 규제 강도·범위 모두 유사</h3>
+          <p class="card-body">
+            유럽연합의 AI Act가 올해 전면 시행된 가운데, 한국 법안도 유사한 골격을 따르고 있다.
+            다만 과징금 수준과 예외 조항에서 차이를 보인다.
+          </p>
+        </div>
+        <div class="card-metrics">
+          <span class="card-metric">조회 58K</span>
+          <span class="card-metric">댓글 142</span>
+          <span class="card-metric">재게재 24</span>
+        </div>
+        <div class="card-attrib">
+          <div class="profile-avatar a7">LJ</div>
+          <div class="attrib-meta">
+            <div class="attrib-name">이준호 기자</div>
+            <div class="attrib-sub"><span class="attrib-src">조선비즈</span><span>· IT팀</span></div>
+          </div>
+          <div class="attrib-time"><span class="sentiment-mark neu"></span>10시간</div>
+        </div>
+        <div class="card-actions">
+          <button class="card-action primary">원문 열기</button>
+          <button class="card-action">비교표 보기</button>
+          <button class="card-action">저장</button>
+          <div class="spacer"></div>
+          <button class="card-action">번역</button>
+        </div>
+        <div class="card-detail">
+          <div class="cd-row"><span class="k">비교 항목</span><span class="v">과징금: EU 전세계 매출 7% / 한국 전세계 매출 3%</span></div>
+        </div>
+      </article>
+
+    </div>
+
+  </main>
+
+  <!-- ─── SIDEBAR RIGHT : 알림 중심 ─── -->
+  <aside class="sidebar sidebar-r" id="sb-right">
+    <div class="sb-resize" id="resize-right"></div>
+    <div class="sidebar-inner">
+
+      <div class="sb-head">
+        <div class="sb-head-left">
+          <div class="sb-head-title">알림</div>
+          <span class="sb-head-count" id="notif-count">7</span>
+        </div>
+        <div class="sb-head-actions">
+          <button class="icon-btn" title="설정">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+          </button>
+          <button class="icon-btn" id="btn-read-all" title="모두 읽음">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="20 6 9 17 4 12"/></svg>
+          </button>
+        </div>
+      </div>
+
+      <div class="n-filters">
+        <button class="n-chip active">전체</button>
+        <button class="n-chip">경보</button>
+        <button class="n-chip">기회</button>
+        <button class="n-chip">완료</button>
+      </div>
+
+      <div class="notif-list">
+
+        <div class="notif unread">
+          <div class="notif-body">
+            <div class="notif-title">부정 감성 급증 감지</div>
+            <div class="notif-sub">최근 1시간 내 LiveRe 댓글에서 부정 감성이 평소 대비 +68% 증가했습니다. 주요 기사를 확인하세요.</div>
+            <div class="notif-meta">
+              <span class="notif-kind alert">경보</span>
+              <span>3분 전</span>
+              <span>· AI 규제</span>
+            </div>
+            <div class="notif-actions">
+              <button class="btn primary">확인</button>
+              <button class="btn">무시</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="notif unread">
+          <div class="notif-body">
+            <div class="notif-title">인플루언서 @techinsider_kr 언급</div>
+            <div class="notif-sub">팔로워 84K의 IT 리서처가 토픽 "AI 규제"에 대해 7편 스레드를 게시했습니다. 팔로워 리포스트 1.2K.</div>
+            <div class="notif-meta">
+              <span class="notif-kind hot">기회</span>
+              <span>28분 전</span>
+            </div>
+            <div class="notif-actions">
+              <button class="btn primary">포스트 보기</button>
+              <button class="btn">프로필 저장</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="notif unread">
+          <div class="notif-body">
+            <div class="notif-title">새 영상 콘텐츠 감지</div>
+            <div class="notif-sub">YouTube "테크인사이트" 채널에서 AI 규제 해설 영상을 업로드했습니다. 현재 조회 32K.</div>
+            <div class="notif-meta">
+              <span class="notif-kind hot">기회</span>
+              <span>2시간 전</span>
+            </div>
+            <div class="notif-actions">
+              <button class="btn primary">영상 열기</button>
+              <button class="btn">요약</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="notif unread">
+          <div class="notif-body">
+            <div class="notif-title">키워드 "스타트업 우려" 급상승</div>
+            <div class="notif-sub">지난 24시간 대비 동반 언급량이 +312% 증가했습니다. 카테고리: 산업·경제.</div>
+            <div class="notif-meta">
+              <span class="notif-kind alert">경보</span>
+              <span>3시간 전</span>
+            </div>
+            <div class="notif-actions">
+              <button class="btn primary">분석 열기</button>
+              <button class="btn">무시</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="notif read">
+          <div class="notif-body">
+            <div class="notif-title">주간 리포트 준비 완료</div>
+            <div class="notif-sub">4월 2주차 버즈 리포트가 생성되었습니다. PDF·노션 형식 지원.</div>
+            <div class="notif-meta">
+              <span class="notif-kind done">완료</span>
+              <span>6시간 전</span>
+            </div>
+            <div class="notif-actions">
+              <button class="btn">리포트 열기</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="notif read">
+          <div class="notif-body">
+            <div class="notif-title">새 소스 연결됨</div>
+            <div class="notif-sub">Threads 크롤링이 활성화되었습니다. 첫 수집 결과가 10분 내 반영됩니다.</div>
+            <div class="notif-meta">
+              <span class="notif-kind done">완료</span>
+              <span>어제 18:24</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="notif read">
+          <div class="notif-body">
+            <div class="notif-title">신고 처리 결과</div>
+            <div class="notif-sub">스팸으로 신고하신 댓글 3건이 자동 숨김 처리되었습니다.</div>
+            <div class="notif-meta">
+              <span class="notif-kind done">완료</span>
+              <span>어제 14:02</span>
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+    </div>
+  </aside>
+
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+(() => {
+  const $  = (s, r = document) => r.querySelector(s);
+  const $$ = (s, r = document) => Array.from(r.querySelectorAll(s));
+
+  // ───── 테마 토글 ─────
+  const themeBtn = $('#theme-toggle');
+  const icMoon = $('#ic-moon');
+  themeBtn.addEventListener('click', () => {
+    const cur = document.body.dataset.theme;
+    const next = cur === 'light' ? '' : 'light';
+    if (next) document.body.dataset.theme = 'light';
+    else delete document.body.dataset.theme;
+    // 아이콘 교체
+    icMoon.innerHTML = next === 'light'
+      ? '<circle cx="12" cy="12" r="4"/><line x1="12" y1="2" x2="12" y2="5"/><line x1="12" y1="19" x2="12" y2="22"/><line x1="4.22" y1="4.22" x2="6.34" y2="6.34"/><line x1="17.66" y1="17.66" x2="19.78" y2="19.78"/><line x1="2" y1="12" x2="5" y2="12"/><line x1="19" y1="12" x2="22" y2="12"/><line x1="4.22" y1="19.78" x2="6.34" y2="17.66"/><line x1="17.66" y1="6.34" x2="19.78" y2="4.22"/>'
+      : '<path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>';
+  });
+
+  // ───── 사이드바 토글 ─────
+  const sbL = $('#sb-left'), sbR = $('#sb-right');
+  const handleL = $('#handle-left'), handleR = $('#handle-right');
+
+  const syncL = () => {
+    const collapsed = sbL.classList.contains('collapsed');
+    document.body.classList.toggle('sb-l-collapsed', collapsed);
+    handleL.classList.toggle('show', collapsed);
+  };
+  const syncR = () => {
+    const collapsed = sbR.classList.contains('collapsed');
+    document.body.classList.toggle('sb-r-collapsed', collapsed);
+    handleR.classList.toggle('show', collapsed);
+  };
+
+  $('#toggle-left').addEventListener('click', () => { sbL.classList.toggle('collapsed'); syncL(); });
+  $('#toggle-right').addEventListener('click', () => { sbR.classList.toggle('collapsed'); syncR(); });
+  handleL.addEventListener('click', () => { sbL.classList.remove('collapsed'); syncL(); });
+  handleR.addEventListener('click', () => { sbR.classList.remove('collapsed'); syncR(); });
+
+  // ───── 사이드바 리사이즈 ─────
+  const setupResize = (handle, sb, cssVar, side) => {
+    let dragging = false, startX = 0, startW = 0;
+    handle.addEventListener('mousedown', e => {
+      if (sb.classList.contains('collapsed')) return;
+      dragging = true;
+      handle.classList.add('dragging');
+      startX = e.clientX;
+      startW = sb.getBoundingClientRect().width;
+      document.body.style.userSelect = 'none';
+      document.body.style.cursor = 'col-resize';
+    });
+    document.addEventListener('mousemove', e => {
+      if (!dragging) return;
+      const dx = e.clientX - startX;
+      const delta = side === 'l' ? dx : -dx;
+      const next = Math.max(200, Math.min(480, startW + delta));
+      document.documentElement.style.setProperty(cssVar, next + 'px');
+    });
+    document.addEventListener('mouseup', () => {
+      if (!dragging) return;
+      dragging = false;
+      handle.classList.remove('dragging');
+      document.body.style.userSelect = '';
+      document.body.style.cursor = '';
+    });
+  };
+  setupResize($('#resize-left'), sbL, '--sb-l-w', 'l');
+  setupResize($('#resize-right'), sbR, '--sb-r-w', 'r');
+
+  // ───── 카드 select-check 동적 삽입 ─────
+  $$('.stream .card').forEach(card => {
+    if (card.querySelector('.card-select-check')) return;
+    const check = document.createElement('div');
+    check.className = 'card-select-check';
+    check.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><polyline points="20 6 9 17 4 12"/></svg>';
+    card.insertBefore(check, card.firstChild);
+  });
+
+  // ───── 선택 모드 상태 ─────
+  let selecting = false;
+  const streamCards = () => $$('.stream .card');
+  const selCount = $('#sel-count');
+  const selDeleteBtn = $('#sel-delete');
+
+  const updateSelCount = () => {
+    const n = $$('.stream .card.selected').length;
+    selCount.textContent = n + '개 선택됨';
+    selCount.classList.toggle('zero', n === 0);
+    selDeleteBtn.disabled = n === 0;
+    // 선택 0이면 selecting 모드 해제
+    if (n === 0 && selecting) {
+      selecting = false;
+      document.body.classList.remove('selecting');
+    }
+  };
+
+  const enterSelecting = () => {
+    if (selecting) return;
+    selecting = true;
+    document.body.classList.add('selecting');
+  };
+
+  // ───── 카드 펼치기 + 선택 ─────
+  $$('[data-exp]').forEach(el => {
+    const isStream = el.closest('.stream');
+    let pressTimer = null;
+    let longPressed = false;
+
+    if (isStream) {
+      el.addEventListener('mousedown', ev => {
+        if (ev.button !== 0) return;
+        if (ev.target.closest('.card-action, .card-select-check, button, a, input')) return;
+        longPressed = false;
+        el.classList.add('long-pressing');
+        pressTimer = setTimeout(() => {
+          longPressed = true;
+          el.classList.remove('long-pressing');
+          enterSelecting();
+          el.classList.add('selected');
+          updateSelCount();
+        }, 550);
+      });
+      const cancelPress = () => {
+        clearTimeout(pressTimer);
+        el.classList.remove('long-pressing');
+      };
+      el.addEventListener('mouseup', cancelPress);
+      el.addEventListener('mouseleave', cancelPress);
+    }
+
+    el.addEventListener('click', ev => {
+      if (longPressed) { longPressed = false; ev.preventDefault(); return; }
+      if (ev.target.closest('.card-action, .card-actions button, a, input')) return;
+      // 선택 모드에선 클릭으로 토글
+      if (selecting && isStream) {
+        ev.preventDefault();
+        el.classList.toggle('selected');
+        updateSelCount();
+        return;
+      }
+      el.classList.toggle('expanded');
+    });
+  });
+
+  // 체크 원 직접 클릭
+  $$('.card-select-check').forEach(ck => {
+    ck.addEventListener('click', ev => {
+      ev.stopPropagation();
+      enterSelecting();
+      ck.closest('.card').classList.toggle('selected');
+      updateSelCount();
+    });
+  });
+
+  // 전체 선택 / 해제 / 삭제
+  $('#sel-all').addEventListener('click', () => {
+    enterSelecting();
+    streamCards().forEach(c => c.classList.add('selected'));
+    updateSelCount();
+  });
+  $('#sel-clear').addEventListener('click', () => {
+    streamCards().forEach(c => c.classList.remove('selected'));
+    updateSelCount();
+  });
+  $('#sel-delete').addEventListener('click', () => {
+    const targets = $$('.stream .card.selected');
+    if (!targets.length) return;
+    targets.forEach(c => c.remove());
+    showToast(targets.length + '개 항목 삭제');
+    updateSelCount();
+  });
+
+  // ───── 액션 버튼 토스트 ─────
+  const toast = $('#toast');
+  let toastTimer;
+  const showToast = msg => {
+    toast.textContent = msg;
+    toast.classList.add('show');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => toast.classList.remove('show'), 2200);
+  };
+  $$('.card-action').forEach(btn => {
+    btn.addEventListener('click', e => {
+      e.stopPropagation();
+      const label = btn.textContent.trim();
+      showToast(label + ' — 실행');
+    });
+  });
+  $$('.notif-actions .btn').forEach(btn => {
+    btn.addEventListener('click', e => {
+      e.stopPropagation();
+      showToast(btn.textContent.trim() + ' — 실행');
+    });
+  });
+
+  // ───── 새로고침 애니메이션 ─────
+  const refreshBtn = $('#btn-refresh');
+  refreshBtn.addEventListener('click', () => {
+    refreshBtn.classList.add('loading');
+    setTimeout(() => {
+      refreshBtn.classList.remove('loading');
+      showToast('데이터 새로고침 완료');
+      const cv = $('#val-collected');
+      const cur = parseInt(cv.textContent.replace(/[^\d]/g,''), 10);
+      cv.innerHTML = (cur + Math.floor(Math.random()*40 + 10)).toLocaleString() + '<span class="unit">건</span>';
+    }, 900);
+  });
+
+  // ───── 실시간 구독 토글 ─────
+  const subBtn = $('#btn-subscribe');
+  const subLabel = subBtn.querySelector('.sub-label');
+  subBtn.addEventListener('click', () => {
+    const on = subBtn.classList.toggle('on');
+    subLabel.textContent = on ? '실시간 구독중' : '구독 시작';
+    showToast(on ? '실시간 스트림 구독 시작' : '실시간 스트림 해제');
+  });
+
+  // ───── 스트림 전체 보기 토글 ─────
+  const streamExpandBtn = $('#btn-stream-expand');
+  const streamExpandLabel = streamExpandBtn.querySelector('.btn-label');
+  streamExpandBtn.addEventListener('click', () => {
+    const maxed = document.body.classList.toggle('stream-maximized');
+    streamExpandLabel.textContent = maxed ? '기본 보기' : '전체 보기';
+    streamExpandBtn.title = maxed ? '기본 레이아웃으로 복원' : '스트림만 전체 보기';
+    if (maxed) window.scrollTo({ top: streamExpandBtn.closest('.section-head').offsetTop - 80, behavior: 'smooth' });
+  });
+
+  // ───── 모두 읽음 ─────
+  const readAllBtn = $('#btn-read-all');
+  const notifCount = $('#notif-count');
+  const syncNotifCount = () => {
+    const unread = $$('.notif.unread').length;
+    notifCount.textContent = unread;
+    notifCount.classList.toggle('zero', unread === 0);
+  };
+  readAllBtn.addEventListener('click', () => {
+    $$('.notif.unread').forEach(n => { n.classList.remove('unread'); n.classList.add('read'); });
+    syncNotifCount();
+    showToast('알림 모두 읽음 처리');
+  });
+  $$('.notif.unread').forEach(n => {
+    n.addEventListener('click', ev => {
+      if (ev.target.closest('.btn')) return;
+      n.classList.remove('unread');
+      n.classList.add('read');
+      syncNotifCount();
+    });
+  });
+  syncNotifCount();
+
+  // ───── 새 데이터 알림 바 ─────
+  $('#new-bar').addEventListener('click', () => {
+    $('#new-bar').style.display = 'none';
+    showToast('새 데이터 37건을 스트림에 반영');
+  });
+
+  // ───── 필터 세그먼트 ─────
+  $$('.stream-ctl .seg').forEach(seg => {
+    seg.addEventListener('click', e => {
+      const btn = e.target.closest('button');
+      if (!btn) return;
+      seg.querySelectorAll('button').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+    });
+  });
+  $$('.n-chip').forEach(chip => {
+    chip.addEventListener('click', () => {
+      $$('.n-chip').forEach(c => c.classList.remove('active'));
+      chip.classList.add('active');
+    });
+  });
+  $$('.sf-chip').forEach(chip => {
+    chip.addEventListener('click', e => {
+      e.stopPropagation();
+      chip.classList.toggle('active');
+    });
+  });
+
+  // ───── 실시간 카운터 주기 증가 ─────
+  setInterval(() => {
+    const cv = $('#val-collected');
+    if (!cv) return;
+    const cur = parseInt(cv.textContent.replace(/[^\d]/g,''), 10);
+    cv.innerHTML = (cur + Math.floor(Math.random()*3 + 1)).toLocaleString() + '<span class="unit">건</span>';
+  }, 4500);
+
+})();
+</script>
+</body>
+</html>
