@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>livere — Buzz Dashboard</title>
 <style>
-/* ─── 디자인 스타일 (livere Buzz 테마) ─── */
+/* ─── 디자인 스타일 ─── */
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 :root {
   --bg: #0c0d11; --surface: #14151a; --elev: #1a1b22; --hover: #1f2029;
@@ -108,7 +108,6 @@ const GID_DC_BARBIE = '1630739076';
 
 let fullData = [];
 
-// 1. 시트 데이터 가져오기
 async function fetchSheetData(gid) {
     try {
         const url = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:csv&gid=${gid}`;
@@ -116,12 +115,11 @@ async function fetchSheetData(gid) {
         const csvText = await response.text();
         return parseCSV(csvText);
     } catch (e) {
-        console.error("데이터 패치 실패:", e);
+        console.error("패치 실패:", e);
         return [];
     }
 }
 
-// 2. CSV 파싱
 function parseCSV(csv) {
     const lines = csv.split('\n');
     const headers = lines[0].split(',').map(h => h.replace(/"/g, '').trim());
@@ -135,7 +133,6 @@ function parseCSV(csv) {
     });
 }
 
-// 3. 사이드바 키워드 렌더링
 function renderSidebar(data) {
     const kwContainer = document.getElementById('keyword-list');
     const keywords = [...new Set(data.map(item => item['키워드']).filter(k => k))];
@@ -165,15 +162,11 @@ function renderSidebar(data) {
     });
 }
 
-// 4. 키워드 필터링
 function filterByKeyword(keyword) {
-    const filtered = (keyword === '전체') 
-        ? fullData 
-        : fullData.filter(item => item['키워드'] === keyword);
+    const filtered = (keyword === '전체') ? fullData : fullData.filter(item => item['키워드'] === keyword);
     displayCards(filtered);
 }
 
-// 5. 카드 화면 표시 (핵심: 링크 데이터 연결)
 function displayCards(data) {
     const stream = document.getElementById('stream');
     if (!stream) return;
@@ -186,7 +179,7 @@ function displayCards(data) {
         let sourceColor = '#4f7ce4'; 
         let sourceLabel = 'ARCA';
         if (item.source === 'DC') { sourceColor = '#ff4e4e'; sourceLabel = 'DC'; }
-        if (item.source === 'BARBIE') { sourceColor = '#ff8c00'; sourceLabel = 'BARBIE'; }
+        if (item.source === '바베') { sourceColor = '#ff8c00'; sourceLabel = '바베'; }
 
         card.innerHTML = `
             <div class="card-content">
@@ -202,16 +195,14 @@ function displayCards(data) {
                     <div>${item['작성일'] || '-'} · ${sourceLabel}</div>
                 </div>
             </div>
-            <a href="${item['링크'] || '#'}" target="_blank" class="card-action-btn">원문 보기</a>
+            <a href="${item['URL'] || '#'}" target="_blank" class="card-action-btn">원문 보기</a>
         `;
         stream.appendChild(card);
     });
 
-    const valEl = document.getElementById('val-collected');
-    if (valEl) valEl.innerHTML = `${data.length.toLocaleString()}<span>건</span>`;
+    document.getElementById('val-collected').innerHTML = `${data.length.toLocaleString()}<span>건</span>`;
 }
 
-// 6. 초기 로드 (3개 소스 통합)
 async function init() {
     try {
         const [dc, arca, barbie] = await Promise.all([
@@ -223,7 +214,7 @@ async function init() {
         fullData = [
             ...arca.map(d => ({...d, source: 'ARCA'})),
             ...dc.map(d => ({...d, source: 'DC'})),
-            ...barbie.map(d => ({...d, source: 'BARBIE'}))
+            ...barbie.map(d => ({...d, source: '바베'})) // 소스 명칭 변경
         ].sort((a, b) => new Date(b['작성일']) - new Date(a['작성일']));
 
         renderSidebar(fullData);
@@ -234,7 +225,7 @@ async function init() {
             <b>로딩 성공:</b><br>
             - <span style="color:#4f7ce4">ARCA</span>: ${arca.length}건<br>
             - <span style="color:#ff4e4e">DC</span>: ${dc.length}건<br>
-            - <span style="color:#ff8c00">BARBIE</span>: ${barbie.length}건
+            - <span style="color:#ff8c00">바베</span>: ${barbie.length}건
         `;
     } catch (e) {
         console.error(e);
@@ -242,15 +233,12 @@ async function init() {
     }
 }
 
-// 테마 토글
 document.getElementById('theme-toggle').onclick = () => {
     const b = document.body;
     b.dataset.theme = b.dataset.theme === 'light' ? '' : 'light';
 };
 
-// 페이지 로드 시 시작
 window.onload = init;
 </script>
-
 </body>
 </html>
