@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>livere — Buzz Dashboard</title>
 <style>
-/* ─── 디자인 시스템 ─── */
+/* ─── 기존 디자인 시스템 유지 ─── */
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 :root {
   --bg: #0c0d11; --surface: #14151a; --elev: #1a1b22; --hover: #1f2029;
@@ -16,13 +16,7 @@
   --radius: 12px; --transition: 160ms ease;
 }
 
-body { 
-    font-family: 'Pretendard', sans-serif; 
-    background: var(--bg); 
-    color: var(--text); 
-    line-height: 1.5; 
-    overflow-x: hidden; 
-}
+body { font-family: 'Pretendard', sans-serif; background: var(--bg); color: var(--text); line-height: 1.5; overflow-x: hidden; }
 button { cursor: pointer; border: none; background: none; font-family: inherit; color: inherit; }
 .tnum { font-variant-numeric: tabular-nums; }
 
@@ -35,6 +29,35 @@ button { cursor: pointer; border: none; background: none; font-family: inherit; 
 .sidebar { width: 260px; height: calc(100vh - 60px); position: fixed; border-right: 1px solid var(--border); overflow-y: auto; padding: 20px 10px; }
 .main { flex: 1; margin-left: 260px; margin-right: 300px; padding: 30px; min-height: 100vh; overflow-y: auto; height: calc(100vh - 60px); scroll-behavior: smooth; }
 .sidebar-r { width: 300px; position: fixed; right: 0; border-left: 1px solid var(--border); height: calc(100vh - 60px); overflow-y: auto; padding: 20px; }
+
+/* ─── 추가된 인사이트 & 검색 스타일 ─── */
+.insight-section { margin-bottom: 30px; }
+.insight-title { font-size: 16px; font-weight: 700; margin-bottom: 15px; }
+.insight-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
+.insight-card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 20px; }
+.insight-card h5 { font-size: 13px; color: var(--text-dim); margin-bottom: 15px; }
+
+/* 채널별 막대 그래프 스타일 */
+.chart-row { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; font-size: 12px; }
+.chart-label { width: 40px; color: var(--text-mute); }
+.chart-bar-bg { flex: 1; height: 6px; background: var(--elev); border-radius: 3px; overflow: hidden; }
+.chart-bar-fill { height: 100%; background: var(--brand); width: 0%; transition: width 0.5s ease; }
+.chart-val { width: 50px; text-align: right; color: var(--text-dim); }
+
+/* 검색 및 필터 헤더 */
+.stream-header { display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 20px; padding-bottom: 15px; border-bottom: 1px solid var(--border); }
+.stream-info { font-size: 16px; font-weight: 700; }
+.stream-info span { font-size: 13px; color: var(--text-mute); margin-left: 5px; font-weight: 400; }
+
+.stream-ctrl { display: flex; gap: 10px; align-items: center; }
+.sort-btns { display: flex; background: var(--elev); padding: 3px; border-radius: 8px; border: 1px solid var(--border); }
+.sort-btn { padding: 6px 12px; font-size: 12px; border-radius: 6px; color: var(--text-mute); }
+.sort-btn.active { background: var(--surface); color: var(--text); box-shadow: 0 2px 4px rgba(0,0,0,0.2); }
+
+.search-box { position: relative; }
+.search-input { background: var(--elev); border: 1px solid var(--border); border-radius: 8px; padding: 8px 12px 8px 32px; color: var(--text); font-size: 13px; width: 220px; transition: var(--transition); }
+.search-input:focus { border-color: var(--brand); outline: none; width: 280px; }
+.search-icon { position: absolute; left: 10px; top: 50%; transform: translateY(-50%); opacity: 0.5; pointer-events: none; }
 
 /* 사이드바 구성 요소 */
 .sb-section { margin-bottom: 24px; }
@@ -119,6 +142,36 @@ button { cursor: pointer; border: none; background: none; font-family: inherit; 
                     <div style="color: var(--text-mute); font-size: 11px;" id="last-update">...</div>
                 </div>
             </section>
+
+            <section class="insight-section">
+                <h3 class="insight-title">인사이트</h3>
+                <div class="insight-grid">
+                    <div class="insight-card">
+                        <h5>감성 분포</h5>
+                        <p style="font-size: 13px; color:var(--text-mute); text-align:center; padding-top:10px;">아직 라벨링된 데이터가 없습니다</p>
+                    </div>
+                    <div class="insight-card">
+                        <h5>채널별 수집량 (상위 3)</h5>
+                        <div id="channel-chart">
+                            </div>
+                    </div>
+                </div>
+            </section>
+
+            <div class="stream-header">
+                <div class="stream-info">스트림 <span id="stream-total-cnt">0</span></div>
+                <div class="stream-ctrl">
+                    <div class="sort-btns">
+                        <button class="sort-btn active" onclick="setSort('date', this)">최신순</button>
+                        <button class="sort-btn" onclick="setSort('views', this)">조회순</button>
+                        <button class="sort-btn" onclick="setSort('likes', this)">추천순</button>
+                    </div>
+                    <div class="search-box">
+                        <span class="search-icon">🔍</span>
+                        <input type="text" id="stream-search" class="search-input" placeholder="스트림 내 검색..." oninput="handleSearch(this.value)">
+                    </div>
+                </div>
+            </div>
             
             <div class="stream" id="stream">
                 <div class="loading">데이터를 불러오는 중입니다...</div>
@@ -145,7 +198,7 @@ const GID_DC_BARBIE = '1630739076';
 
 let fullData = [];      
 let currentFilteredData = [];
-let curKeyword = 'all', curChannel = 'all', viewMode = 'all';
+let curKeyword = 'all', curChannel = 'all', viewMode = 'all', searchQuery = '', curSort = 'date';
 let currentPage = 1;
 const itemsPerPage = 12;
 let bookmarks = JSON.parse(localStorage.getItem('buzz_bookmarks')) || [];
@@ -167,10 +220,7 @@ async function init() {
             ...barbie.map(x => ({...x, source: '바베'}))
         ].sort((a, b) => new Date(b['작성일']) - new Date(a['작성일']));
 
-        // 키워드 목록 생성
         renderKeywordList();
-        
-        // 필터 및 렌더링
         applyFilters();
         
         document.getElementById('last-update').innerText = new Date().toLocaleTimeString();
@@ -197,16 +247,58 @@ async function fetchSheet(gid) {
 }
 
 function applyFilters() {
+    // 1. 필터링 로직 (키워드, 채널, 북마크, 검색어)
     currentFilteredData = fullData.filter(item => {
         const mk = (curKeyword === 'all' || item['키워드'] === curKeyword);
         const mc = (curChannel === 'all' || item.source === curChannel);
         const ms = (viewMode === 'all' || bookmarks.includes(item['URL']));
-        return mk && mc && ms;
+        const mq = !searchQuery || (item['제목'] && item['제목'].toLowerCase().includes(searchQuery.toLowerCase())) || (item['작성자'] && item['작성자'].includes(searchQuery));
+        return mk && mc && ms && mq;
     });
     
+    // 2. 정렬 로직
+    if(curSort === 'views') currentFilteredData.sort((a,b) => (parseInt(b['조회'])||0) - (parseInt(a['조회'])||0));
+    else if(curSort === 'likes') currentFilteredData.sort((a,b) => (parseInt(b['추천'])||0) - (parseInt(a['추천'])||0));
+    else currentFilteredData.sort((a, b) => new Date(b['작성일']) - new Date(a['작성일']));
+
     currentPage = 1;
+    updateInsights(); // 인사이트 대시보드 갱신
     displayCurrentPage();
     renderPagination();
+}
+
+/** ─── 인사이트 및 검색 업데이트 ─── **/
+function updateInsights() {
+    const chartBox = document.getElementById('channel-chart');
+    const counts = { 'ARCA': 0, 'DC': 0, '바베': 0 };
+    currentFilteredData.forEach(item => { if(counts[item.source] !== undefined) counts[item.source]++; });
+    
+    const maxVal = Math.max(...Object.values(counts), 1);
+    
+    chartBox.innerHTML = Object.entries(counts).map(([name, count]) => {
+        const per = (count / maxVal) * 100;
+        return `
+            <div class="chart-row">
+                <div class="chart-label">${name}</div>
+                <div class="chart-bar-bg"><div class="chart-bar-fill" style="width:${per}%"></div></div>
+                <div class="chart-val tnum">${count.toLocaleString()}</div>
+            </div>
+        `;
+    }).join('');
+
+    document.getElementById('stream-total-cnt').innerText = `전체 ${currentFilteredData.length.toLocaleString()}건`;
+}
+
+function handleSearch(val) {
+    searchQuery = val;
+    applyFilters();
+}
+
+function setSort(type, btn) {
+    curSort = type;
+    document.querySelectorAll('.sort-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    applyFilters();
 }
 
 /** ─── UI 렌더링 ─── **/
