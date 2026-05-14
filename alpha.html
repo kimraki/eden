@@ -5,38 +5,66 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>livere — Buzz Dashboard</title>
 <style>
-/* 디자인 스타일은 가독성을 위해 유지합니다 (성능 및 관리용) */
+/* ─── 기초 스타일 ─── */
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-:root { --bg: #0c0d11; --surface: #14151a; --elev: #1a1b22; --hover: #1f2029; --text: #ececf0; --text-dim: #9a9aac; --text-mute: #5d5d70; --border: #23242e; --border-strong: #2f303c; --brand: #4f7ce4; --brand-hi: #6b94f2; --brand-soft: rgba(79,124,228,0.12); --pos: #4ba882; --neg: #d56565; --neu: #8b8b9a; --radius: 12px; --transition: 160ms ease; }
-[data-theme="light"] { --bg: #f6f7f9; --surface: #ffffff; --elev: #ffffff; --hover: #eef0f4; --text: #17181f; --text-dim: #5a5d6b; --text-mute: #9698a5; --border: #e6e8ee; --border-strong: #d1d4dc; }
+:root {
+  --bg: #0c0d11; --surface: #14151a; --elev: #1a1b22; --hover: #1f2029;
+  --text: #ececf0; --text-dim: #9a9aac; --text-mute: #5d5d70;
+  --border: #23242e; --border-strong: #2f303c;
+  --brand: #4f7ce4; --brand-hi: #6b94f2; --brand-soft: rgba(79,124,228,0.12);
+  --pos: #4ba882; --neg: #d56565; --neu: #8b8b9a;
+  --radius: 12px; --transition: 160ms ease;
+}
+[data-theme="light"] {
+  --bg: #f6f7f9; --surface: #ffffff; --elev: #ffffff; --hover: #eef0f4;
+  --text: #17181f; --text-dim: #5a5d6b; --text-mute: #9698a5;
+  --border: #e6e8ee; --border-strong: #d1d4dc;
+}
 body { font-family: 'Pretendard', sans-serif; background: var(--bg); color: var(--text); line-height: 1.5; overflow: hidden; }
 button { cursor: pointer; border: none; background: none; font-family: inherit; color: inherit; }
 .tnum { font-variant-numeric: tabular-nums; }
-#login-screen { position: fixed; inset: 0; background: #0c0d11; display: flex; align-items:center; justify-content:center; z-index: 9999; }
+
+/* ─── 로그인 화면 스타일 ─── */
+#login-screen { position: fixed; inset: 0; background: #0c0d11; display: flex; align-items: center; justify-content: center; z-index: 9999; }
 .login-card { background: #14151a; padding: 40px; border-radius: 16px; border: 1px solid #23242e; width: 340px; text-align: center; box-shadow: 0 20px 40px rgba(0,0,0,0.4); }
-.login-input { width: 100%; padding: 12px; margin-bottom: 12px; border-radius: 8px; border: 1px solid #23242e; background: #0c0d11; color: #fff; outline: none; }
-.login-btn { width: 100%; padding: 12px; background: var(--brand); color: #fff; border-radius: 8px; font-weight: bold; }
+.login-input { width: 100%; padding: 12px; margin-bottom: 12px; border-radius: 8px; border: 1px solid #23242e; background: #0c0d11; color: #fff; outline: none; transition: border-color 0.2s; }
+.login-input:focus { border-color: var(--brand); }
+.login-btn { width: 100%; padding: 12px; background: var(--brand); color: #fff; border-radius: 8px; font-weight: bold; transition: opacity 0.2s; }
+.login-btn:hover { opacity: 0.9; }
+
+/* ─── 대시보드 레이아웃 ─── */
 .topbar { position: fixed; top: 0; left: 0; right: 0; height: 60px; background: var(--bg); border-bottom: 1px solid var(--border); display: flex; align-items: center; padding: 0 20px; z-index: 100; gap: 20px; }
 .brand { font-size: 18px; font-weight: 700; display: flex; align-items: center; gap: 8px; text-decoration: none; color: var(--text); }
 .brand-mark { width: 24px; height: 24px; background: var(--brand); border-radius: 6px; display: grid; place-items: center; color: #fff; font-size: 12px; }
+
 .layout { display: flex; padding-top: 60px; }
 .sidebar { width: 260px; height: calc(100vh - 60px); position: fixed; border-right: 1px solid var(--border); overflow-y: auto; padding: 20px 10px; }
 .main { flex: 1; margin-left: 260px; margin-right: 300px; padding: 30px; min-height: 100vh; overflow-y: auto; height: calc(100vh - 60px); }
 .sidebar-r { width: 300px; position: fixed; right: 0; border-left: 1px solid var(--border); height: calc(100vh - 60px); overflow-y: auto; padding: 20px; }
+
 .sb-section-title { font-size: 11px; font-weight: 600; color: var(--text-mute); text-transform: uppercase; letter-spacing: 0.1em; padding: 10px; }
 .sb-item { width: 100%; display: flex; align-items: center; gap: 12px; padding: 10px; border-radius: 8px; font-size: 14px; transition: var(--transition); text-align: left; margin-bottom: 2px; }
+.sb-item:hover { background: var(--hover); }
 .sb-item.active { background: var(--brand-soft); color: var(--brand-hi); font-weight: 600; }
 .sb-icon { width: 24px; height: 24px; background: var(--elev); border-radius: 6px; display: grid; place-items: center; font-size: 11px; border: 1px solid var(--border); }
+
 .stream { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 20px; }
 .card { background: var(--surface); border: 1px solid var(--border); border-radius: 16px; padding: 20px; transition: var(--transition); display: flex; flex-direction: column; gap: 12px; }
+.card:hover { transform: translateY(-2px); border-color: var(--border-strong); box-shadow: 0 10px 20px rgba(0,0,0,0.2); }
 .card-title { font-size: 17px; font-weight: 700; }
 .card-body { font-size: 14px; color: var(--text); font-weight: 500; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; min-height: 4.2em; line-height: 1.4; }
 .card-attrib { display: flex; align-items: center; gap: 10px; padding-top: 15px; border-top: 1px solid var(--border); margin-top: auto; }
 .avatar-sm { width: 32px; height: 32px; border-radius: 50%; display: grid; place-items: center; font-size: 12px; font-weight: 700; }
 .meta-info { flex: 1; font-size: 11px; color: var(--text-dim); }
-.card-action-btn { display: block; width: 100%; padding: 10px; background: var(--brand-soft); color: var(--brand-hi); border-radius: 8px; font-size: 13px; font-weight: 600; text-align: center; text-decoration: none; }
+.meta-name { font-weight: 600; color: var(--text); font-size: 12px; }
+.card-action-btn { display: block; width: 100%; padding: 10px; background: var(--brand-soft); color: var(--brand-hi); border-radius: 8px; font-size: 13px; font-weight: 600; transition: var(--transition); text-align: center; text-decoration: none; border: 1px solid transparent; }
+.card-action-btn:hover { background: var(--brand); color: #fff; border-color: var(--brand); }
+
 .live-head { background: var(--surface); border: 1px solid var(--border); border-radius: 16px; padding: 20px; margin-bottom: 25px; display: flex; justify-content: space-between; align-items: center; }
+.stat-box h4 { font-size: 12px; color: var(--text-mute); margin-bottom: 5px; }
 .stat-val { font-size: 24px; font-weight: 700; }
+.stat-val span { font-size: 14px; font-weight: 500; margin-left: 4px; color: var(--text-mute); }
+
 .loading { grid-column: 1/-1; text-align: center; padding: 100px; color: var(--text-mute); font-size: 18px; }
 </style>
 </head>
@@ -49,7 +77,7 @@ button { cursor: pointer; border: none; background: none; font-family: inherit; 
         <input type="text" id="user-id" class="login-input" placeholder="아이디">
         <input type="password" id="user-pw" class="login-input" placeholder="비밀번호">
         <button id="login-btn" class="login-btn">로그인</button>
-        <p id="login-error" style="color:var(--neg); font-size:12px; margin-top:16px; display:none;">인증에 실패했습니다.</p>
+        <p id="login-error" style="color:var(--neg); font-size:12px; margin-top:16px; display:none;">아이디 또는 비밀번호가 잘못되었습니다.</p>
     </div>
 </div>
 
@@ -59,131 +87,185 @@ button { cursor: pointer; border: none; background: none; font-family: inherit; 
         <div style="flex:1"></div>
         <button id="theme-toggle" class="sb-icon" style="width:36px; height:36px">🌓</button>
     </header>
+
     <div class="layout">
         <aside class="sidebar" id="sb-left">
-            <div class="sb-section"><div class="sb-section-title">키워드 필터 <span id="kw-count" class="tnum" style="margin-left:5px; color:var(--brand-hi)">0</span></div><div id="keyword-list"></div></div>
+            <div class="sb-section">
+                <div class="sb-section-title">키워드 필터 <span id="kw-count" class="tnum" style="margin-left:5px; color:var(--brand-hi)">0</span></div>
+                <div id="keyword-list"></div>
+            </div>
         </aside>
+
         <main class="main">
-            <section class="live-head"><div class="stat-box"><h4>통합 수집 현황</h4><div class="stat-val tnum" id="val-collected">0<span>건</span></div></div><div style="text-align: right"><div style="color: var(--pos); font-size: 12px; font-weight: 700; margin-bottom: 4px;">● LIVE MONITORING</div><div style="color: var(--text-mute); font-size: 11px;" id="last-update">...</div></div></section>
-            <div class="stream" id="stream"><div class="loading">준비 중...</div></div>
+            <section class="live-head">
+                <div class="stat-box">
+                    <h4>통합 수집 현황</h4>
+                    <div class="stat-val tnum" id="val-collected">0<span>건</span></div>
+                </div>
+                <div style="text-align: right">
+                    <div style="color: var(--pos); font-size: 12px; font-weight: 700; margin-bottom: 4px;">● LIVE MONITORING</div>
+                    <div style="color: var(--text-mute); font-size: 11px;" id="last-update">업데이트 시각 확인 중...</div>
+                </div>
+            </section>
+
+            <div class="stream" id="stream">
+                <div class="loading">데이터를 로드하고 있습니다...</div>
+            </div>
         </main>
-        <aside class="sidebar-r"><div class="sb-section-title">최근 알림</div><div id="notif-box" style="padding:15px; color:var(--text-dim); font-size:13px; background:var(--elev); border-radius:12px; border:1px solid var(--border); line-height:1.7">연동 대기 중</div></aside>
+
+        <aside class="sidebar-r">
+            <div class="sb-section-title">최근 알림</div>
+            <div id="notif-box" style="padding:15px; color:var(--text-dim); font-size:13px; background:var(--elev); border-radius:12px; border:1px solid var(--border); line-height:1.7">
+                로그인이 확인되었습니다.
+            </div>
+        </aside>
     </div>
 </div>
 
 <script>
-/* ─── 난독화된 로직 영역 ─── */
-const _0x1a2b = ["\x65\x64\x65\x6e", "\x65\x64\x65\x6e\x31\x32\x33\x34", "\x31\x70\x70\x58\x7a\x63\x62\x4a\x71\x4b\x37\x59\x6b\x32\x6a\x67\x6d\x32\x61\x2d\x53\x6d\x54\x79\x54\x4b\x4c\x73\x47\x55\x30\x41\x66\x4c\x5a\x6a\x68\x64\x38\x41\x4c\x4a\x6f\x4d", "\x30", "\x31\x37\x31\x31\x37\x34\x30\x31\x31\x34", "\x31\x36\x33\x30\x37\x33\x39\x30\x37\x36", "\x67\x65\x74\x45\x6c\x65\x6d\x65\x6e\x74\x42\x79\x49\x64", "\x76\x61\x6c\x75\x65", "\x64\x69\x73\x70\x6c\x61\x79", "\x6e\x6f\x6e\x65", "\x62\x6c\x6f\x63\x6b", "\x6f\x76\x65\x72\x66\x6c\x6f\x77", "\x61\x75\x74\x6f", "\x6b\x65\x79\x70\x72\x65\x73\x73", "\x45\x6e\x74\x65\x72", "\x68\x74\x74\x70\x73\x3a\x2f\x2f\x64\x6f\x63\x73\x2e\x67\x6f\x6f\x67\x6c\x65\x2e\x63\x6f\x6d\x2f\x73\x70\x72\x65\x61\x64\x73\x68\x65\x65\x74\x73\x2f\x64\x2f", "\x2f\x67\x76\x69\x7a\x2f\x74\x71\x3f\x74\x71\x78\x3d\x6f\x75\x74\x3a\x63\x73\x76\x26\x67\x69\x64\x3d", "\x7b\x2e\x2e\x2e\x64\x2c\x73\x6f\x75\x72\x63\x65\x3a\x27\x41\x52\x43\x41\x27\x7d", "\x44\x43", "\xeb\xb0\x94\xeb\xb2\xa0", "\x55\x52\x4c"];
-const _0x5c = (i) => _0x1a2b[i];
+// 1. 보안 설정
+const ACCESS_ID = "eden";
+const ACCESS_PW = "eden1234";
 
-let _0x99 = [];
+// 2. 시트 설정
+const SHEET_ID = '1ppXzcbJqK7Yk2jgm2a-SmTyTKLsGU0AfLZJhd8ALJoM';
+const GID_DC = '0';
+const GID_ARCA = '1711740114';
+const GID_DC_BARBIE = '1630739076';
 
-function _0xlogin() {
-    const _0x1 = document[_0x5c(6)]('user-id')[_0x5c(7)];
-    const _0x2 = document[_0x5c(6)]('user-pw')[_0x5c(7)];
-    if (_0x1 === _0x5c(0) && _0x2 === _0x5c(1)) {
-        document[_0x5c(6)]('login-screen').style[_0x5c(8)] = _0x5c(9);
-        document[_0x5c(6)]('main-content').style[_0x5c(8)] = _0x5c(10);
-        document.body.style[_0x5c(11)] = _0x5c(12);
-        _0xinit();
+let fullData = [];
+
+// 3. 로그인 로직
+function checkLogin() {
+    const id = document.getElementById('user-id').value;
+    const pw = document.getElementById('user-pw').value;
+
+    if (id === ACCESS_ID && pw === ACCESS_PW) {
+        document.getElementById('login-screen').style.display = 'none';
+        document.getElementById('main-content').style.display = 'block';
+        document.body.style.overflow = 'auto';
+        init(); // 로그인 성공 시에만 데이터 로딩 시작
     } else {
-        document[_0x5c(6)]('login-error').style[_0x5c(8)] = _0x5c(10);
+        document.getElementById('login-error').style.display = 'block';
     }
 }
 
-document[_0x5c(6)]('login-btn').onclick = _0xlogin;
-document.addEventListener(_0x5c(13), (e) => { if (e.key === _0x5c(14)) _0xlogin(); });
+document.getElementById('login-btn').onclick = checkLogin;
+document.addEventListener('keypress', (e) => { if (e.key === 'Enter') checkLogin(); });
 
-async function _0xgetData(g) {
+// 4. 데이터 엔진
+async function fetchSheetData(gid) {
     try {
-        const u = _0x5c(15) + _0x5c(2) + _0x5c(16) + g;
-        const r = await fetch(u);
-        const t = await r.text();
-        return _0xparse(t);
+        const url = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:csv&gid=${gid}`;
+        const response = await fetch(url);
+        const csvText = await response.text();
+        return parseCSV(csvText);
     } catch (e) { return []; }
 }
 
-function _0xparse(c) {
-    const l = c.split('\n');
-    const h = l[0].split(',').map(x => x.replace(/"/g, '').trim());
-    return l.slice(1).map(r => {
-        const v = r.match(/(".*?"|[^",\s]+)(?=\s*,|\s*$)/g) || [];
-        const o = {};
-        h.forEach((x, i) => { o[x] = v[i] ? v[i].replace(/"/g, '').trim() : ''; });
-        return o;
+function parseCSV(csv) {
+    const lines = csv.split('\n');
+    const headers = lines[0].split(',').map(h => h.replace(/"/g, '').trim());
+    return lines.slice(1).map(line => {
+        const values = line.match(/(".*?"|[^",\s]+)(?=\s*,|\s*$)/g) || [];
+        const obj = {};
+        headers.forEach((header, i) => { obj[header] = values[i] ? values[i].replace(/"/g, '').trim() : ''; });
+        return obj;
     });
 }
 
-function _0xdrawS(d) {
-    const c = document[_0x5c(6)]('keyword-list');
-    const k = [...new Set(d.map(x => x['\xed\x82\xa4\xec\x9b\x8c\xeb\x93\x9c']).filter(x => x))];
-    document[_0x5c(6)]('kw-count').innerText = k.length;
-    c.innerHTML = `<button class="sb-item active" data-kw="all"><span class="sb-icon">ALL</span><span class="sb-item-label">전체 보기</span></button>`;
-    k.forEach(x => {
-        const b = document.createElement('button');
-        b.className = 'sb-item';
-        b.setAttribute('data-kw', x);
-        b.innerHTML = `<span class="sb-icon">#</span><span class="sb-item-label">${x}</span>`;
-        c.appendChild(b);
+function renderSidebar(data) {
+    const kwContainer = document.getElementById('keyword-list');
+    const keywords = [...new Set(data.map(item => item['키워드']).filter(k => k))];
+    document.getElementById('kw-count').innerText = keywords.length;
+
+    kwContainer.innerHTML = `<button class="sb-item active" data-kw="전체"><span class="sb-icon">ALL</span><span class="sb-item-label">전체 보기</span></button>`;
+    keywords.forEach(kw => {
+        const btn = document.createElement('button');
+        btn.className = 'sb-item';
+        btn.setAttribute('data-kw', kw);
+        btn.innerHTML = `<span class="sb-icon">#</span><span class="sb-item-label">${kw}</span>`;
+        kwContainer.appendChild(btn);
     });
-    c.querySelectorAll('.sb-item').forEach(b => {
-        b.onclick = () => {
-            c.querySelectorAll('.sb-item').forEach(x => x.classList.remove('active'));
-            b.classList.add('active');
-            _0xfilter(b.getAttribute('data-kw'));
+
+    kwContainer.querySelectorAll('.sb-item').forEach(btn => {
+        btn.onclick = () => {
+            kwContainer.querySelectorAll('.sb-item').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            filterByKeyword(btn.getAttribute('data-kw'));
         };
     });
 }
 
-function _0xfilter(k) {
-    const f = (k === 'all') ? _0x99 : _0x99.filter(x => x['\xed\x82\xa4\xec\x9b\x8c\xeb\x93\x9c'] === k);
-    _0xrender(f);
+function filterByKeyword(keyword) {
+    const filtered = (keyword === '전체') ? fullData : fullData.filter(item => item['키워드'] === keyword);
+    displayCards(filtered);
 }
 
-function _0xrender(d) {
-    const s = document[_0x5c(6)]('stream');
-    if (!s) return;
-    s.innerHTML = '';
-    d.forEach(x => {
-        const a = document.createElement('article');
-        a.className = 'card';
-        let c = '#4f7ce4', l = 'ARCA';
-        if (x.source === _0x5c(18)) { c = '#ff4e4e'; l = 'DC'; }
-        if (x.source === _0x5c(19)) { c = '#ff8c00'; l = '바베'; }
-        a.innerHTML = `
+function displayCards(data) {
+    const stream = document.getElementById('stream');
+    if (!stream) return;
+    stream.innerHTML = '';
+
+    data.forEach(item => {
+        const card = document.createElement('article');
+        card.className = 'card';
+        
+        let sourceColor = '#4f7ce4'; 
+        let sourceLabel = 'ARCA';
+        if (item.source === 'DC') { sourceColor = '#ff4e4e'; sourceLabel = 'DC'; }
+        if (item.source === '바베') { sourceColor = '#ff8c00'; sourceLabel = '바베'; }
+
+        card.innerHTML = `
             <div class="card-content">
-                <div class="card-title" style="color: ${c}">${x['\xed\x82\xa4\xec\x9b\x8c\xeb\x93\x9c'] || ''}</div>
-                <p class="card-body">${x['\xec\xa0\x9c\xeb\xaa\xa9'] || ''}</p>
+                <div class="card-title" style="color: ${sourceColor}">${item['키워드'] || '키워드 없음'}</div>
+                <p class="card-body">${item['제목'] || '내용 없음'}</p>
             </div>
             <div class="card-attrib">
-                <div class="avatar-sm" style="background: ${c}; color: #fff">${l[0]}</div>
+                <div class="avatar-sm" style="background: ${sourceColor}; color: #fff">${sourceLabel[0]}</div>
                 <div class="meta-info">
-                    <div class="meta-name">${x['\xec\x9e\x91\xec\x84\xb1\xec\x9e\x90'] || ''}</div>
-                    <div>${x['\xec\x9e\x91\xec\x84\xb1\xec\x9d\xbc'] || ''} · ${l}</div>
+                    <div class="meta-name">${item['작성자'] || '익명'}</div>
+                    <div>${item['작성일'] || '-'} · ${sourceLabel}</div>
                 </div>
             </div>
-            <a href="${x[_0x5c(20)] || '#'}" target="_blank" class="card-action-btn">원문 보기</a>`;
-        s.appendChild(a);
+            <a href="${item['URL'] || '#'}" target="_blank" class="card-action-btn">원문 보기</a>
+        `;
+        stream.appendChild(card);
     });
-    document[_0x5c(6)]('val-collected').innerHTML = `${d.length.toLocaleString()}<span>건</span>`;
+
+    document.getElementById('val-collected').innerHTML = `${data.length.toLocaleString()}<span>건</span>`;
 }
 
-async function _0xinit() {
+async function init() {
     try {
-        const [a, b, c] = await Promise.all([_0xgetData(_0x5c(3)), _0xgetData(_0x5c(4)), _0xgetData(_0x5c(5))]);
-        _0x99 = [
-            ...b.map(x => ({...x, source: 'ARCA'})),
-            ...a.map(x => ({...x, source: 'DC'})),
-            ...c.map(x => ({...x, source: '바베'}))
-        ].sort((p, q) => new Date(q['\xec\x9e\x91\xec\x84\xb1\xec\x9d\xbc']) - new Date(p['\xec\x9e\x91\xec\x84\xb1\xec\x9d\xbc']));
-        _0xdrawS(_0x99);
-        _0xrender(_0x99);
-        document[_0x5c(6)]('last-update').innerText = `업데이트: ${new Date().toLocaleTimeString()}`;
-        document[_0x5c(6)]('notif-box').innerHTML = `<b>연동 성공</b><br>데이터 수집이 완료되었습니다.`;
-    } catch (e) { document[_0x5c(6)]('stream').innerHTML = 'Error'; }
+        const [dc, arca, barbie] = await Promise.all([
+            fetchSheetData(GID_DC), 
+            fetchSheetData(GID_ARCA),
+            fetchSheetData(GID_DC_BARBIE)
+        ]);
+        
+        fullData = [
+            ...arca.map(d => ({...d, source: 'ARCA'})),
+            ...dc.map(d => ({...d, source: 'DC'})),
+            ...barbie.map(d => ({...d, source: '바베'}))
+        ].sort((a, b) => new Date(b['작성일']) - new Date(a['작성일']));
+
+        renderSidebar(fullData);
+        displayCards(fullData);
+
+        document.getElementById('last-update').innerText = `업데이트: ${new Date().toLocaleTimeString()}`;
+        document.getElementById('notif-box').innerHTML = `
+            <b>실시간 연동 성공</b><br>
+            - <span style="color:#4f7ce4">ARCA</span>: ${arca.length}건<br>
+            - <span style="color:#ff4e4e">DC</span>: ${dc.length}건<br>
+            - <span style="color:#ff8c00">바베</span>: ${barbie.length}건
+        `;
+    } catch (e) {
+        document.getElementById('stream').innerHTML = '<div class="loading">데이터 로딩 에러</div>';
+    }
 }
 
-document[_0x5c(6)]('theme-toggle').onclick = () => {
+document.getElementById('theme-toggle').onclick = () => {
     const b = document.body;
     b.dataset.theme = b.dataset.theme === 'light' ? '' : 'light';
 };
