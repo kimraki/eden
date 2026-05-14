@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>livere — Buzz Dashboard</title>
+<title>livere — Buzz Dashboard (Integrated)</title>
 <style>
 /* ─── 디자인 스타일 (기존 유지) ─── */
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -15,16 +15,24 @@
   --pos: #4ba882; --neg: #d56565; --neu: #8b8b9a;
   --radius: 12px; --transition: 160ms ease;
 }
-body { font-family: 'Pretendard', sans-serif; background: var(--bg); color: var(--text); line-height: 1.5; overflow: hidden; }
+[data-theme="light"] {
+  --bg: #f6f7f9; --surface: #ffffff; --elev: #ffffff; --hover: #eef0f4;
+  --text: #17181f; --text-dim: #5a5d6b; --text-mute: #9698a5;
+  --border: #e6e8ee; --border-strong: #d1d4dc;
+}
+body { font-family: 'Pretendard', sans-serif; background: var(--bg); color: var(--text); line-height: 1.5; overflow-x: hidden; }
 button { cursor: pointer; border: none; background: none; font-family: inherit; color: inherit; }
 .tnum { font-variant-numeric: tabular-nums; }
 
-/* 레이아웃 */
-#login-screen { position: fixed; inset: 0; background: #0c0d11; display: flex; align-items:center; justify-content:center; z-index: 9999; }
+/* ─── 로그인 화면 스타일 ─── */
+#login-screen { position: fixed; inset: 0; background: #0c0d11; display: flex; align-items: center; justify-content: center; z-index: 9999; }
 .login-card { background: #14151a; padding: 40px; border-radius: 16px; border: 1px solid #23242e; width: 340px; text-align: center; }
-.login-input { width: 100%; padding: 12px; margin-bottom: 12px; border-radius: 8px; border: 1px solid #23242e; background: #0c0d11; color: #fff; outline: none; }
-.login-btn { width: 100%; padding: 12px; background: var(--brand); color: #fff; border-radius: 8px; font-weight: bold; }
+.login-input { width: 100%; padding: 12px; margin-bottom: 12px; border-radius: 8px; border: 1px solid #23242e; background: #0c0d11; color: #fff; outline: none; transition: border-color 0.2s; }
+.login-input:focus { border-color: var(--brand); }
+.login-btn { width: 100%; padding: 12px; background: var(--brand); color: #fff; border-radius: 8px; font-weight: bold; transition: opacity 0.2s; }
+.login-btn:hover { opacity: 0.9; }
 
+/* ─── 대시보드 레이아웃 ─── */
 .topbar { position: fixed; top: 0; left: 0; right: 0; height: 60px; background: var(--bg); border-bottom: 1px solid var(--border); display: flex; align-items: center; padding: 0 20px; z-index: 100; gap: 20px; }
 .brand { font-size: 18px; font-weight: 700; display: flex; align-items: center; gap: 8px; text-decoration: none; color: var(--text); }
 .brand-mark { width: 24px; height: 24px; background: var(--brand); border-radius: 6px; display: grid; place-items: center; color: #fff; font-size: 12px; }
@@ -34,16 +42,14 @@ button { cursor: pointer; border: none; background: none; font-family: inherit; 
 .main { flex: 1; margin-left: 260px; margin-right: 300px; padding: 30px; min-height: 100vh; overflow-y: auto; height: calc(100vh - 60px); }
 .sidebar-r { width: 300px; position: fixed; right: 0; border-left: 1px solid var(--border); height: calc(100vh - 60px); overflow-y: auto; padding: 20px; }
 
-/* 사이드바 아이템 */
-.sb-section { margin-bottom: 24px; }
+/* ─── 사이드바 아이템 ─── */
 .sb-section-title { font-size: 11px; font-weight: 600; color: var(--text-mute); text-transform: uppercase; letter-spacing: 0.1em; padding: 10px; }
-.sb-item { width: 100%; display: flex; align-items: center; gap: 12px; padding: 10px; border-radius: 8px; font-size: 14px; transition: var(--transition); text-align: left; margin-bottom: 2px; color: var(--text-dim); }
-.sb-item:hover { background: var(--hover); color: var(--text); }
+.sb-item { width: 100%; display: flex; align-items: center; gap: 12px; padding: 10px; border-radius: 8px; font-size: 14px; transition: var(--transition); text-align: left; margin-bottom: 2px; }
+.sb-item:hover { background: var(--hover); }
 .sb-item.active { background: var(--brand-soft); color: var(--brand-hi); font-weight: 600; }
-.sb-icon { width: 24px; height: 24px; background: var(--elev); border-radius: 6px; display: grid; place-items: center; font-size: 10px; border: 1px solid var(--border); }
-.sb-item.active .sb-icon { border-color: var(--brand-hi); background: var(--brand); color: white; }
+.sb-icon { width: 24px; height: 24px; background: var(--elev); border-radius: 6px; display: grid; place-items: center; font-size: 11px; border: 1px solid var(--border); }
 
-/* 카드 스타일 */
+/* ─── 카드 (Stream) ─── */
 .stream { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 20px; }
 .card { background: var(--surface); border: 1px solid var(--border); border-radius: 16px; padding: 20px; transition: var(--transition); display: flex; flex-direction: column; gap: 12px; }
 .card:hover { transform: translateY(-2px); border-color: var(--border-strong); box-shadow: 0 10px 20px rgba(0,0,0,0.2); }
@@ -52,12 +58,23 @@ button { cursor: pointer; border: none; background: none; font-family: inherit; 
 .card-attrib { display: flex; align-items: center; gap: 10px; padding-top: 15px; border-top: 1px solid var(--border); margin-top: auto; }
 .avatar-sm { width: 32px; height: 32px; border-radius: 50%; display: grid; place-items: center; font-size: 12px; font-weight: 700; }
 .meta-info { flex: 1; font-size: 11px; color: var(--text-dim); }
-.card-action-btn { display: block; width: 100%; padding: 10px; background: var(--brand-soft); color: var(--brand-hi); border-radius: 8px; font-size: 13px; font-weight: 600; text-align: center; text-decoration: none; border: 1px solid transparent; }
-.card-action-btn:hover { background: var(--brand); color: #fff; }
+.meta-name { font-weight: 600; color: var(--text); font-size: 12px; }
 
+/* 액션 버튼 영역 */
+.card-actions { display: flex; gap: 10px; padding-top: 15px; border-top: 1px solid var(--border); }
+.card-action-btn { flex: 1; padding: 10px; background: var(--brand-soft); color: var(--brand-hi); border-radius: 8px; font-size: 13px; font-weight: 600; text-align: center; text-decoration: none; }
+.card-action-btn:hover { background: var(--brand); color: #fff; }
+.save-btn { flex: 1; display: flex; align-items: center; justify-content: center; gap: 8px; padding: 10px; background: var(--surface); color: var(--text-dim); border: 1px solid var(--border); border-radius: 8px; font-size: 13px; font-weight: 600; }
+.save-btn:hover { background: var(--hover); color: var(--text); }
+.save-btn.saved { background: var(--neg); color: #fff; border-color: var(--neg); }
+
+/* ─── 통계 및 알림 ─── */
 .live-head { background: var(--surface); border: 1px solid var(--border); border-radius: 16px; padding: 20px; margin-bottom: 25px; display: flex; justify-content: space-between; align-items: center; }
 .stat-val { font-size: 24px; font-weight: 700; }
 .loading { grid-column: 1/-1; text-align: center; padding: 100px; color: var(--text-mute); font-size: 18px; }
+
+/* 아이콘 스타일 */
+.icon { width: 14px; height: 14px; fill: currentColor; }
 </style>
 </head>
 <body>
@@ -79,16 +96,17 @@ button { cursor: pointer; border: none; background: none; font-family: inherit; 
         <div style="flex:1"></div>
         <button id="theme-toggle" class="sb-icon" style="width:36px; height:36px">🌓</button>
     </header>
+
     <div class="layout">
         <aside class="sidebar" id="sb-left">
-            <div class="sb-section">
-                <div class="sb-section-title">채널 필터</div>
-                <div id="channel-list">
-                    <button class="sb-item active" onclick="setChannel('all', this)"><span class="sb-icon">ALL</span><span class="sb-item-label">전체 채널</span></button>
-                    <button class="sb-item" onclick="setChannel('ARCA', this)"><span class="sb-icon">AR</span><span class="sb-item-label">ARCA</span></button>
-                    <button class="sb-item" onclick="setChannel('DC', this)"><span class="sb-icon">DC</span><span class="sb-item-label">DC 인사이드</span></button>
-                    <button class="sb-item" onclick="setChannel('바베', this)"><span class="sb-icon">BB</span><span class="sb-item-label">바베챗갤</span></button>
-                </div>
+            <div class="sb-section" id="bookmark-section">
+                <div class="sb-section-title">북마크 <span id="bookmark-count" class="tnum" style="margin-left:5px; color:var(--brand-hi)">0</span></div>
+                <div id="bookmark-list">
+                    <button class="sb-item active" data-kw="all-bookmarks">
+                        <span class="sb-icon"><svg class="icon" viewBox="0 0 24 24"><path d="M17 3H7c-1.1 0-1.99.9-1.99 2L5 21l7-3 7 3V5c0-1.1-.9-2-2-2z"/></svg></span>
+                        <span class="sb-item-label">전체 북마크</span>
+                    </button>
+                    </div>
             </div>
 
             <div class="sb-section">
@@ -98,27 +116,43 @@ button { cursor: pointer; border: none; background: none; font-family: inherit; 
         </aside>
 
         <main class="main">
-            <section class="live-head"><div class="stat-box"><h4>통합 수집 현황</h4><div class="stat-val tnum" id="val-collected">0<span>건</span></div></div><div style="text-align: right"><div style="color: var(--pos); font-size: 12px; font-weight: 700; margin-bottom: 4px;">● LIVE MONITORING</div><div style="color: var(--text-mute); font-size: 11px;" id="last-update">...</div></div></section>
-            <div class="stream" id="stream"><div class="loading">준비 중...</div></div>
+            <section class="live-head">
+                <div class="stat-box">
+                    <h4>통합 수집 현황</h4>
+                    <div class="stat-val tnum" id="val-collected">0<span>건</span></div>
+                </div>
+                <div style="text-align: right">
+                    <div style="color: var(--pos); font-size: 12px; font-weight: 700; margin-bottom: 4px;">● LIVE MONITORING</div>
+                    <div style="color: var(--text-mute); font-size: 11px;" id="last-update">로드 중...</div>
+                </div>
+            </section>
+
+            <div class="stream" id="stream">
+                <div class="loading">데이터를 불러오는 중입니다...</div>
+            </div>
         </main>
 
-        <aside class="sidebar-r"><div class="sb-section-title">최근 알림</div><div id="notif-box" style="padding:15px; color:var(--text-dim); font-size:13px; background:var(--elev); border-radius:12px; border:1px solid var(--border); line-height:1.7">연동 대기 중</div></aside>
+        <aside class="sidebar-r">
+            <div class="sb-section-title">최근 알림</div>
+            <div id="notif-box" style="padding:15px; color:var(--text-dim); font-size:13px; background:var(--elev); border-radius:12px; border:1px solid var(--border); line-height:1.7">
+                로그인이 확인되었습니다.
+            </div>
+        </aside>
     </div>
 </div>
 
 <script>
 // 보안 설정
-const ACCESS_ID = "eden";
-const ACCESS_PW = "eden1234";
+const ACCESS_ID = "admin";
+const ACCESS_PW = "1234";
 
 const SHEET_ID = '1ppXzcbJqK7Yk2jgm2a-SmTyTKLsGU0AfLZJhd8ALJoM';
 const GID_DC = '0';
 const GID_ARCA = '1711740114';
 const GID_DC_BARBIE = '1630739076';
 
-let fullData = [];      // 전체 원본 데이터
-let curKeyword = 'all'; // 현재 선택된 키워드
-let curChannel = 'all'; // 현재 선택된 채널
+let fullData = [];
+let savedItems = JSON.parse(localStorage.getItem('livereSavedItems')) || []; // 로컬 스토리지에서 저장된 아이템 불러오기
 
 // 로그인 로직
 function checkLogin() {
@@ -131,106 +165,208 @@ function checkLogin() {
         document.getElementById('login-error').style.display = 'block';
     }
 }
+
 document.getElementById('login-btn').onclick = checkLogin;
+document.addEventListener('keypress', (e) => { if (e.key === 'Enter') checkLogin(); });
 
-// 필터링 핵심 함수: 키워드와 채널을 모두 고려함
-function applyFilters() {
-    const filtered = fullData.filter(item => {
-        const matchKeyword = (curKeyword === 'all' || item['키워드'] === curKeyword);
-        const matchChannel = (curChannel === 'all' || item.source === curChannel);
-        return matchKeyword && matchChannel;
-    });
-    renderCards(filtered);
+// 데이터 엔진
+async function fetchSheetData(gid) {
+    try {
+        const url = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:csv&gid=${gid}`;
+        const response = await fetch(url);
+        const csvText = await response.text();
+        return parseCSV(csvText);
+    } catch (e) { return []; }
 }
 
-// 채널 변경 시 호출
-function setChannel(ch, btn) {
-    curChannel = ch;
-    document.querySelectorAll('#channel-list .sb-item').forEach(el => el.classList.remove('active'));
-    btn.classList.add('active');
-    applyFilters();
-}
-
-// 키워드 변경 시 호출
-function setKeyword(kw, btn) {
-    curKeyword = kw;
-    document.querySelectorAll('#keyword-list .sb-item').forEach(el => el.classList.remove('active'));
-    btn.classList.add('active');
-    applyFilters();
-}
-
-// 카드 렌더링
-function renderCards(data) {
-    const s = document.getElementById('stream');
-    s.innerHTML = '';
-    data.forEach(x => {
-        let col = '#4f7ce4', lab = 'ARCA';
-        if (x.source === 'DC') { col = '#ff4e4e'; lab = 'DC'; }
-        if (x.source === '바베') { col = '#ff8c00'; lab = '바베'; }
-        
-        const art = document.createElement('article');
-        art.className = 'card';
-        art.innerHTML = `
-            <div class="card-content">
-                <div class="card-title" style="color:${col}">${x['키워드']||''}</div>
-                <p class="card-body">${x['제목']||''}</p>
-            </div>
-            <div class="card-attrib">
-                <div class="avatar-sm" style="background:${col};color:#fff">${lab[0]}</div>
-                <div class="meta-info"><div><b>${x['작성자']||'익명'}</b></div><div>${x['작성일']||''} · ${lab}</div></div>
-            </div>
-            <a href="${x['URL']||'#'}" target="_blank" class="card-action-btn">원문 보기</a>`;
-        s.appendChild(art);
-    });
-    document.getElementById('val-collected').innerHTML = `${data.length.toLocaleString()}<span>건</span>`;
-}
-
-// 데이터 파싱 및 초기화
-async function fetchSheet(gid) {
-    const url = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:csv&gid=${gid}`;
-    const r = await fetch(url);
-    const txt = await r.text();
-    const rows = txt.split('\n');
-    const head = rows[0].split(',').map(h => h.replace(/"/g, '').trim());
-    return rows.slice(1).map(row => {
-        const val = row.match(/(".*?"|[^",\s]+)(?=\s*,|\s*$)/g) || [];
+function parseCSV(csv) {
+    const lines = csv.split('\n');
+    const headers = lines[0].split(',').map(h => h.replace(/"/g, '').trim());
+    return lines.slice(1).map(line => {
+        const values = line.match(/(".*?"|[^",\s]+)(?=\s*,|\s*$)/g) || [];
         const obj = {};
-        head.forEach((h, i) => { obj[h] = val[i] ? val[i].replace(/"/g, '').trim() : ''; });
+        headers.forEach((header, i) => { obj[header] = values[i] ? values[i].replace(/"/g, '').trim() : ''; });
         return obj;
     });
 }
 
+// 사이드바 렌더링
+function renderSidebar(data) {
+    // 키워드 사이드바
+    const kwContainer = document.getElementById('keyword-list');
+    const keywords = [...new Set(data.map(item => item['키워드']).filter(k => k))];
+    document.getElementById('kw-count').innerText = keywords.length;
+
+    kwContainer.innerHTML = `<button class="sb-item active" data-kw="전체"><span class="sb-icon">ALL</span><span class="sb-item-label">전체 보기</span></button>`;
+    keywords.forEach(kw => {
+        const btn = document.createElement('button');
+        btn.className = 'sb-item';
+        btn.setAttribute('data-kw', kw);
+        btn.innerHTML = `<span class="sb-icon">#</span><span class="sb-item-label">${kw}</span>`;
+        kwContainer.appendChild(btn);
+    });
+
+    kwContainer.querySelectorAll('.sb-item').forEach(btn => {
+        btn.onclick = () => {
+            kwContainer.querySelectorAll('.sb-item').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            filterByKeyword(btn.getAttribute('data-kw'));
+        };
+    });
+
+    // 북마크 사이드바 (소스별 분류)
+    const bmList = document.getElementById('bookmark-list');
+    const sources = ['ARCA', 'DC', '바베'];
+    
+    // 전체 북마크 버튼 유지
+    bmList.innerHTML = `
+        <button class="sb-item active" data-kw="all-bookmarks">
+            <span class="sb-icon"><svg class="icon" viewBox="0 0 24 24"><path d="M17 3H7c-1.1 0-1.99.9-1.99 2L5 21l7-3 7 3V5c0-1.1-.9-2-2-2z"/></svg></span>
+            <span class="sb-item-label">전체 북마크</span>
+        </button>
+    `;
+
+    sources.forEach(source => {
+        const btn = document.createElement('button');
+        btn.className = 'sb-item';
+        btn.setAttribute('data-source', source);
+        btn.innerHTML = `
+            <span class="sb-icon"><svg class="icon" viewBox="0 0 24 24"><path d="M17 3H7c-1.1 0-1.99.9-1.99 2L5 21l7-3 7 3V5c0-1.1-.9-2-2-2z"/></svg></span>
+            <span class="sb-item-label">${source} 북마크</span>
+        `;
+        bmList.appendChild(btn);
+    });
+
+    bmList.querySelectorAll('.sb-item').forEach(btn => {
+        btn.onclick = () => {
+            bmList.querySelectorAll('.sb-item').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            const source = btn.getAttribute('data-source');
+            if (source) {
+                displaySavedItems(source);
+            } else {
+                displaySavedItems(); // 전체 북마크
+            }
+        };
+    });
+    
+    updateBookmarkCount();
+}
+
+// 북마크 저장/해제
+function toggleSave(itemLink, btn) {
+    const itemIndex = savedItems.findIndex(item => item.링크 === itemLink);
+    if (itemIndex > -1) {
+        savedItems.splice(itemIndex, 1);
+        btn.classList.remove('saved');
+        btn.innerHTML = `<svg class="icon" viewBox="0 0 24 24"><path d="M17 3H7c-1.1 0-1.99.9-1.99 2L5 21l7-3 7 3V5c0-1.1-.9-2-2-2z"/></svg>저장`;
+    } else {
+        const itemToAdd = fullData.find(item => item.링크 === itemLink);
+        if (itemToAdd) {
+            savedItems.push(itemToAdd);
+            btn.classList.add('saved');
+            btn.innerHTML = `<svg class="icon" viewBox="0 0 24 24"><path d="M17 3H7c-1.1 0-1.99.9-1.99 2L5 21l7-3 7 3V5c0-1.1-.9-2-2-2z"/></svg>저장됨`;
+        }
+    }
+    localStorage.setItem('livereSavedItems', JSON.stringify(savedItems));
+    updateBookmarkCount();
+}
+
+// 북마크 개수 업데이트
+function updateBookmarkCount() {
+    document.getElementById('bookmark-count').innerText = savedItems.length;
+}
+
+// 북마크 아이템 표시 (소스 필터링 추가)
+function displaySavedItems(sourceFilter = null) {
+    let itemsToDisplay = savedItems;
+    if (sourceFilter) {
+        itemsToDisplay = savedItems.filter(item => item.source === sourceFilter);
+    }
+    displayCards(itemsToDisplay);
+}
+
+// 필터링
+function filterByKeyword(keyword) {
+    const filtered = (keyword === '전체') ? fullData : fullData.filter(item => item['키워드'] === keyword);
+    displayCards(filtered);
+}
+
+function displayCards(data) {
+    const stream = document.getElementById('stream');
+    if (!stream) return;
+    stream.innerHTML = '';
+
+    data.forEach(item => {
+        const card = document.createElement('article');
+        card.className = 'card';
+        
+        let sourceColor = '#4f7ce4'; 
+        let sourceLabel = 'ARCA';
+        if (item.source === 'DC') { sourceColor = '#ff4e4e'; sourceLabel = 'DC'; }
+        if (item.source === '바베') { sourceColor = '#ff8c00'; sourceLabel = '바베'; }
+
+        const isSaved = savedItems.some(savedItem => savedItem.링크 === item.링크);
+        const saveBtnClass = isSaved ? 'save-btn saved' : 'save-btn';
+        const saveBtnText = isSaved ? '저장됨' : '저장';
+
+        card.innerHTML = `
+            <div class="card-content">
+                <div class="card-title" style="color: ${sourceColor}">${item['키워드'] || '키워드 없음'}</div>
+                <p class="card-body">${item['제목'] || '내용 없음'}</p>
+            </div>
+            <div class="card-attrib">
+                <div class="avatar-sm" style="background: ${sourceColor}; color: #fff">${sourceLabel[0]}</div>
+                <div class="meta-info">
+                    <div class="meta-name">${item['작성자'] || '익명'}</div>
+                    <div>${item['작성일'] || '-'} · ${sourceLabel}</div>
+                </div>
+            </div>
+            <div class="card-actions">
+                <a href="${item['URL'] || '#'}" target="_blank" class="card-action-btn">원문 보기</a>
+                <button class="${saveBtnClass}" onclick="toggleSave('${item.링크}', this)">
+                    <svg class="icon" viewBox="0 0 24 24"><path d="M17 3H7c-1.1 0-1.99.9-1.99 2L5 21l7-3 7 3V5c0-1.1-.9-2-2-2z"/></svg>${saveBtnText}
+                </button>
+            </div>
+        `;
+        stream.appendChild(card);
+    });
+
+    document.getElementById('val-collected').innerHTML = `${data.length.toLocaleString()}<span>건</span>`;
+}
+
 async function init() {
     try {
-        const [dc, arca, barbie] = await Promise.all([fetchSheet(GID_DC), fetchSheet(GID_ARCA), fetchSheet(GID_DC_BARBIE)]);
+        const [dc, arca, barbie] = await Promise.all([
+            fetchSheetData(GID_DC), 
+            fetchSheetData(GID_ARCA),
+            fetchSheetData(GID_DC_BARBIE)
+        ]);
+        
         fullData = [
-            ...arca.map(x => ({...x, source: 'ARCA'})),
-            ...dc.map(x => ({...x, source: 'DC'})),
-            ...barbie.map(x => ({...x, source: '바베'}))
+            ...arca.map(d => ({...d, source: 'ARCA'})),
+            ...dc.map(d => ({...d, source: 'DC'})),
+            ...barbie.map(d => ({...d, source: '바베'}))
         ].sort((a, b) => new Date(b['작성일']) - new Date(a['작성일']));
 
-        // 키워드 사이드바 생성
-        const kwList = document.getElementById('keyword-list');
-        const kws = [...new Set(fullData.map(x => x['키워드']).filter(k => k))];
-        document.getElementById('kw-count').innerText = kws.length;
-        
-        kwList.innerHTML = `<button class="sb-item active" onclick="setKeyword('all', this)"><span class="sb-icon">ALL</span><span class="sb-item-label">전체 보기</span></button>`;
-        kws.forEach(k => {
-            const b = document.createElement('button');
-            b.className = 'sb-item';
-            b.onclick = () => setKeyword(k, b);
-            b.innerHTML = `<span class="sb-icon">#</span><span class="sb-item-label">${k}</span>`;
-            kwList.appendChild(b);
-        });
+        renderSidebar(fullData);
+        displayCards(fullData);
 
-        applyFilters();
-        document.getElementById('last-update').innerText = new Date().toLocaleTimeString();
-        document.getElementById('notif-box').innerHTML = `<b>연동 성공</b><br>데이터 수집이 완료되었습니다.`;
-    } catch(e) { console.error(e); }
+        document.getElementById('last-update').innerText = `업데이트: ${new Date().toLocaleTimeString()}`;
+        document.getElementById('notif-box').innerHTML = `
+            <b>실시간 연동 성공</b><br>
+            - <span style="color:#4f7ce4">ARCA</span>: ${arca.length}건<br>
+            - <span style="color:#ff4e4e">DC</span>: ${dc.length}건<br>
+            - <span style="color:#ff8c00">바베</span>: ${barbie.length}건
+        `;
+    } catch (e) {
+        document.getElementById('stream').innerHTML = '<div class="loading">데이터 로딩 에러</div>';
+    }
 }
 
 document.getElementById('theme-toggle').onclick = () => {
-    document.body.dataset.theme = document.body.dataset.theme === 'light' ? '' : 'light';
+    const b = document.body;
+    b.dataset.theme = b.dataset.theme === 'light' ? '' : 'light';
 };
 </script>
 </body>
